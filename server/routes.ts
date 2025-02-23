@@ -6,6 +6,8 @@ import { generateTrailDescription, generateGearList } from "./openai";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { insertTrailSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { parseGpxFile, generateGpxFile } from "./utils/gpx";
+import multer from "multer";
 
 // In-memory storage for logs
 const apiLogs: Array<{
@@ -212,6 +214,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ gearList });
     } catch (error) {
       res.status(500).json({ message: "Failed to generate gear list" });
+    }
+  });
+
+  // Set up multer for file uploads
+  const upload = multer({ storage: multer.memoryStorage() });
+
+  // GPX file upload
+  app.post("/api/trails/:id/gpx", requireRole(["admin", "guide"]), upload.single('gpx'), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No GPX file provided" });
+      }
+
+      const gpxContent = req.file.buffer.toString('utf-8');
+      const { coordinates, pathCoordinates } = parseGpxFile(gpxContent);
+
+      const trail = await storage.updateTrail(id, {
+        coordinates,
+        pathCoordinates,
+        lastUpdatedById: req.user.id,
+      });
+
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+
+      res.json(trail);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // GPX file download
+  app.get("/api/trails/:id/gpx", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+
+      const trail = await storage.getTrailById(id);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+
+      const gpxContent = generateGpxFile(trail.coordinates, trail.pathCoordinates);
+
+      res.setHeader('Content-Type', 'application/gpx+xml');
+      res.setHeader('Content-Disposition', `attachment; filename="trail-${id}.gpx"`);
+      res.send(gpxContent);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
   });
 

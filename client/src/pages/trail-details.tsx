@@ -5,7 +5,7 @@ import { EditableMap } from "@/components/editable-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trail, insertTrailSchema } from "@shared/schema";
-import { Loader2, Save, ArrowLeft } from "lucide-react";
+import { Loader2, Save, ArrowLeft, Upload, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -102,7 +102,6 @@ export default function TrailDetails() {
     }
   };
 
-
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
       const res = await apiRequest(
@@ -139,6 +138,73 @@ export default function TrailDetails() {
       });
     },
   });
+
+  const uploadGpxMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('gpx', file);
+
+      const res = await fetch(`/api/trails/${id}/gpx`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to upload GPX file");
+      }
+
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/trails/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
+      toast({
+        title: "Success",
+        description: "GPX file uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGpxUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadGpxMutation.mutate(file);
+    }
+  };
+
+  const handleGpxDownload = async () => {
+    try {
+      const response = await fetch(`/api/trails/${id}/gpx`);
+      if (!response.ok) {
+        throw new Error("Failed to download GPX file");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trail-${id}.gpx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading && id !== "new") {
     return (
@@ -363,7 +429,29 @@ export default function TrailDetails() {
                           )}
                         />
                       </div>
-
+                      {isAdmin && (
+                        <div className="flex gap-2 mb-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => document.getElementById('gpx-upload')?.click()}
+                            disabled={uploadGpxMutation.isPending}
+                          >
+                            {uploadGpxMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-2" />
+                            )}
+                            Upload GPX
+                          </Button>
+                          <input
+                            id="gpx-upload"
+                            type="file"
+                            accept=".gpx"
+                            className="hidden"
+                            onChange={handleGpxUpload}
+                          />
+                        </div>
+                      )}
                       <Button
                         type="submit"
                         className="w-full"
@@ -414,8 +502,14 @@ export default function TrailDetails() {
                         </ul>
                       )}
                     </div>
-
-                    <Button className="w-full">Download GPX</Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleGpxDownload}
+                      className="w-full"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download GPX
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
