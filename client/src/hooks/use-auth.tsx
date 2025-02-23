@@ -20,24 +20,35 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  } = useQuery<SelectUser>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Login failed");
+      }
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Welcome back!",
+        description: `Logged in as ${user.username}`,
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -51,10 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", credentials);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Registration failed");
+      }
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Welcome!",
+        description: "Account created successfully",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -67,10 +86,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const res = await apiRequest("POST", "/api/logout");
+      if (!res.ok) {
+        throw new Error("Logout failed");
+      }
     },
     onSuccess: () => {
+      // Invalidate and remove user data
+      queryClient.removeQueries({ queryKey: ["/api/user"] });
       queryClient.setQueryData(["/api/user"], null);
+
+      // Clear any cached trail data
+      queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
+
+      toast({
+        title: "Goodbye!",
+        description: "Logged out successfully",
+      });
     },
     onError: (error: Error) => {
       toast({

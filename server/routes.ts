@@ -25,9 +25,12 @@ const errorLogs: Array<{
 
 const startTime = Date.now();
 
-// Type-safe request with authenticated user
 interface AuthenticatedRequest extends Request {
-  user: Express.User;
+  user: Express.User & {
+    id: number;
+    username: string;
+    role: string;
+  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -68,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Error logging middleware
-  app.use((err: Error, req: any, res: any, next: any) => {
+  app.use((err: Error, req: Request, res: Express.Response, next: Express.NextFunction) => {
     errorLogs.unshift({
       timestamp: new Date().toISOString(),
       error: err.message,
@@ -108,23 +111,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Trail management routes
   app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
-    const trail = await storage.createTrail({
-      ...req.body,
-      createdById: req.user.id,
-      lastUpdatedById: req.user.id,
-    });
-    res.status(201).json(trail);
+    try {
+      const validatedData = insertTrailSchema.parse({
+        ...req.body,
+        createdById: req.user.id,
+        lastUpdatedById: req.user.id,
+      });
+
+      const trail = await storage.createTrail(validatedData);
+      res.status(201).json(trail);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   });
 
   app.patch("/api/trails/:id", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
-    const trail = await storage.updateTrail(parseInt(req.params.id), {
-      ...req.body,
-      lastUpdatedById: req.user.id,
-    });
-    if (!trail) {
-      return res.status(404).send("Trail not found");
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+
+      const validatedData = insertTrailSchema.partial().parse({
+        ...req.body,
+        lastUpdatedById: req.user.id,
+      });
+
+      const trail = await storage.updateTrail(id, validatedData);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+      res.json(trail);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
-    res.json(trail);
   });
 
   app.delete("/api/trails/:id", requireRole(["admin"]), async (req, res) => {
@@ -136,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
-  // Existing routes with added auth where needed
+  // Public routes
   app.get("/api/trails", async (_req, res) => {
     const trails = await storage.getTrails();
     res.json(trails);
@@ -155,35 +175,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const trail = await storage.getTrailById(id);
     if (!trail) {
-      return res.status(404).send("Trail not found");
+      return res.status(404).json({ message: "Trail not found" });
     }
     res.json(trail);
   });
 
+  // AI features (protected)
   app.post("/api/trails/:id/ai-description", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid trail ID" });
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+      const trail = await storage.getTrailById(id);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+      const description = await generateTrailDescription(trail);
+      res.json({ description });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate description" });
     }
-    const trail = await storage.getTrailById(id);
-    if (!trail) {
-      return res.status(404).send("Trail not found");
-    }
-    const description = await generateTrailDescription(trail);
-    res.json({ description });
   });
 
   app.post("/api/trails/:id/gear", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid trail ID" });
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+      const trail = await storage.getTrailById(id);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+      const gearList = await generateGearList(trail);
+      res.json({ gearList });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate gear list" });
     }
-    const trail = await storage.getTrailById(id);
-    if (!trail) {
-      return res.status(404).send("Trail not found");
-    }
-    const gearList = await generateGearList(trail);
-    res.json({ gearList });
   });
 
   const httpServer = createServer(app);

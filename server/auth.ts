@@ -55,6 +55,9 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
       done(error);
@@ -105,7 +108,10 @@ export function setupAuth(app: Express) {
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      req.session.destroy((err) => {
+        if (err) return next(err);
+        res.sendStatus(200);
+      });
     });
   });
 
