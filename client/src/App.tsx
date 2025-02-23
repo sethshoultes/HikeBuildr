@@ -3,6 +3,7 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./hooks/use-auth";
+import { NavHeader } from "@/components/nav-header";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
@@ -12,13 +13,16 @@ import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/admin" component={AdminPage} />
-      <ProtectedRoute path="/trail/:id" component={TrailDetails} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-background">
+      <NavHeader />
+      <Switch>
+        <Route path="/" component={HomePage} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/admin" component={AdminPage} />
+        <ProtectedRoute path="/trail/:id" component={TrailDetails} />
+        <Route component={NotFound} />
+      </Switch>
+    </div>
   );
 }
 
