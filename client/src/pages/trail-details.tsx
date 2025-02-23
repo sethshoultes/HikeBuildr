@@ -5,7 +5,7 @@ import { MapView } from "@/components/map-view";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trail, insertTrailSchema } from "@shared/schema";
-import { Loader2, Save, ArrowLeft, Download } from "lucide-react";
+import { Loader2, Save, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,12 +63,12 @@ export default function TrailDetails() {
       imageUrl: "",
       bestSeason: "",
       parkingInfo: "",
-      routeCoordinates: [] as string[], // Change type to string[]
     },
   });
 
   useEffect(() => {
     if (trail) {
+      // Convert null values to undefined and prepare the data for the form
       const formData = {
         name: trail.name,
         description: trail.description,
@@ -81,7 +81,6 @@ export default function TrailDetails() {
         imageUrl: trail.imageUrl || "",
         bestSeason: trail.bestSeason || "",
         parkingInfo: trail.parkingInfo || "",
-        routeCoordinates: trail.routeCoordinates || [], // Ensure array type
       };
       form.reset(formData);
     }
@@ -90,12 +89,6 @@ export default function TrailDetails() {
   const handleTrailEdit = (trailId: number, coordinates: string) => {
     if (isAdmin) {
       form.setValue("coordinates", coordinates);
-    }
-  };
-
-  const handleRouteEdit = (trailId: number, routeCoordinates: string[]) => {
-    if (isAdmin) {
-      form.setValue("routeCoordinates", routeCoordinates);
     }
   };
 
@@ -126,45 +119,6 @@ export default function TrailDetails() {
       });
     },
   });
-
-  const downloadGPX = () => {
-    if (!trail?.routeCoordinates?.length) {
-      toast({
-        title: "No route available",
-        description: "This trail doesn't have a route defined yet.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Hiking Trail App">
-  <metadata>
-    <name>${trail.name}</name>
-    <desc>${trail.description}</desc>
-  </metadata>
-  <trk>
-    <name>${trail.name}</name>
-    <trkseg>
-      ${trail.routeCoordinates.map(coord => {
-        const [lat, lng] = coord.split(",");
-        return `<trkpt lat="${lat}" lon="${lng}"></trkpt>`;
-      }).join("\n      ")}
-    </trkseg>
-  </trk>
-</gpx>`;
-
-    const blob = new Blob([gpx], { type: "application/gpx+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${trail.name.toLowerCase().replace(/\s+/g, "-")}.gpx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
 
   if (isLoading && id !== "new") {
     return (
@@ -345,19 +299,7 @@ export default function TrailDetails() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="routeCoordinates"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Route Coordinates</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Draw route on map" readOnly />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -439,14 +381,7 @@ export default function TrailDetails() {
                       )}
                     </div>
 
-                    <Button
-                      className="w-full"
-                      onClick={downloadGPX}
-                      disabled={!trail?.routeCoordinates?.length}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download GPX
-                    </Button>
+                    <Button className="w-full">Download GPX</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -458,7 +393,6 @@ export default function TrailDetails() {
               trails={trail ? [trail] : []}
               centered
               onTrailEdit={handleTrailEdit}
-              onRouteEdit={handleRouteEdit}
             />
           </div>
         </div>
