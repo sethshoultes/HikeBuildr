@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { MapView } from "@/components/map-view";
@@ -21,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -68,9 +68,29 @@ export default function TrailDetails() {
 
   useEffect(() => {
     if (trail) {
-      form.reset(trail);
+      // Convert null values to undefined and prepare the data for the form
+      const formData = {
+        name: trail.name,
+        description: trail.description,
+        difficulty: trail.difficulty,
+        distance: trail.distance,
+        elevation: trail.elevation,
+        duration: trail.duration,
+        location: trail.location,
+        coordinates: trail.coordinates,
+        imageUrl: trail.imageUrl || "",
+        bestSeason: trail.bestSeason || "",
+        parkingInfo: trail.parkingInfo || "",
+      };
+      form.reset(formData);
     }
   }, [trail, form]);
+
+  const handleTrailEdit = (trailId: number, coordinates: string) => {
+    if (isAdmin) {
+      form.setValue("coordinates", coordinates);
+    }
+  };
 
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
@@ -99,12 +119,6 @@ export default function TrailDetails() {
       });
     },
   });
-
-  const handleTrailEdit = (trailId: number, coordinates: string) => {
-    if (isAdmin) {
-      form.setValue("coordinates", coordinates);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -179,7 +193,7 @@ export default function TrailDetails() {
                               <FormLabel>Difficulty</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
-                                defaultValue={field.value}
+                                value={field.value}
                               >
                                 <FormControl>
                                   <SelectTrigger>
