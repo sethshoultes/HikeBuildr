@@ -3,7 +3,7 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { Trail } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Map, Edit3, Save } from "lucide-react";
+import { Map, Edit3 } from "lucide-react";
 
 interface MapViewProps {
   trails: Trail[];
@@ -57,6 +57,13 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
               stylers: [{ color: "#e8f5e9" }],
             },
           ],
+          // Enable all controls
+          zoomControl: true,
+          mapTypeControl: true,
+          scaleControl: true,
+          streetViewControl: true,
+          rotateControl: true,
+          fullscreenControl: true
         });
 
         if (trails.length > 0) {
@@ -159,40 +166,33 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
     };
   }, [trails, centered, isEditing, onTrailClick, onTrailEdit]);
 
-  if (!isAdmin) {
-    return (
-      <div
-        ref={mapRef}
-        className="w-full h-full rounded-lg border border-border shadow-sm"
-      />
-    );
-  }
-
   return (
-    <div className="relative w-full h-full">
+    <div className="flex flex-col gap-4">
       <div
         ref={mapRef}
         className="w-full h-full rounded-lg border border-border shadow-sm"
       />
-      <div className="absolute top-4 right-4 flex gap-2">
-        <Button
-          variant={isEditing ? "destructive" : "secondary"}
-          size="sm"
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? (
-            <>
-              <Map className="h-4 w-4 mr-2" />
-              View Mode
-            </>
-          ) : (
-            <>
-              <Edit3 className="h-4 w-4 mr-2" />
-              Edit Mode
-            </>
-          )}
-        </Button>
-      </div>
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Button
+            variant={isEditing ? "destructive" : "secondary"}
+            size="sm"
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? (
+              <>
+                <Map className="h-4 w-4 mr-2" />
+                View Mode
+              </>
+            ) : (
+              <>
+                <Edit3 className="h-4 w-4 mr-2" />
+                Edit Mode
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
