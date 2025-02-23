@@ -232,12 +232,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No GPX file provided" });
       }
 
+      if (!req.file.buffer) {
+        return res.status(400).json({ message: "Invalid file format" });
+      }
+
       const gpxContent = req.file.buffer.toString('utf-8');
-      const { coordinates, pathCoordinates } = parseGpxFile(gpxContent);
+
+      let coordinates: string;
+      let pathCoordinates: string;
+      let name: string | undefined;
+      let description: string | undefined;
+
+      try {
+        const result = parseGpxFile(gpxContent);
+        coordinates = result.coordinates;
+        pathCoordinates = result.pathCoordinates;
+        name = result.name;
+        description = result.description;
+      } catch (parseError) {
+        console.error("GPX parsing error:", parseError);
+        return res.status(400).json({ message: "Failed to parse GPX file: " + (parseError as Error).message });
+      }
+
+      // Validate the parsed coordinates
+      if (!coordinates || !pathCoordinates) {
+        return res.status(400).json({ message: "No valid coordinates found in GPX file" });
+      }
 
       const trail = await storage.updateTrail(id, {
         coordinates,
         pathCoordinates,
+        name: name || undefined,
+        description: description || undefined,
         lastUpdatedById: req.user.id,
       });
 
@@ -247,7 +273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(trail);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error("GPX upload error:", error);
+      res.status(500).json({ message: "Failed to process GPX file" });
     }
   });
 
@@ -264,12 +291,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Trail not found" });
       }
 
-      const gpxContent = generateGpxFile(trail.coordinates, trail.pathCoordinates);
+      const gpxContent = generateGpxFile(
+        trail.coordinates,
+        trail.pathCoordinates,
+        trail.name,
+        trail.description,
+        trail.elevation,
+        trail.distance
+      );
 
       res.setHeader('Content-Type', 'application/gpx+xml');
       res.setHeader('Content-Disposition', `attachment; filename="trail-${id}.gpx"`);
       res.send(gpxContent);
     } catch (error) {
+      console.error("GPX download error:", error);
       res.status(400).json({ message: error.message });
     }
   });
