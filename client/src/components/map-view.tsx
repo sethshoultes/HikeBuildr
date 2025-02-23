@@ -167,13 +167,13 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
   }, [trails, centered, isEditing, onTrailClick, onTrailEdit]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="w-full h-full">
       <div
         ref={mapRef}
-        className="w-full h-full rounded-lg border border-border shadow-sm"
+        className="w-full h-[600px] rounded-lg border border-border shadow-sm"
       />
       {isAdmin && (
-        <div className="flex justify-end">
+        <div className="mt-4 flex justify-end">
           <Button
             variant={isEditing ? "destructive" : "secondary"}
             size="sm"
