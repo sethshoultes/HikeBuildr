@@ -60,6 +60,7 @@ export default function TrailDetails() {
       duration: "",
       location: "",
       coordinates: "",
+      pathCoordinates: "", // Added pathCoordinates to defaultValues
       imageUrl: "",
       bestSeason: "",
       parkingInfo: "",
@@ -77,6 +78,7 @@ export default function TrailDetails() {
         duration: trail.duration,
         location: trail.location,
         coordinates: trail.coordinates,
+        pathCoordinates: trail.pathCoordinates || "", // Added pathCoordinates to formData
         imageUrl: trail.imageUrl || "",
         bestSeason: trail.bestSeason || "",
         parkingInfo: trail.parkingInfo || "",
@@ -90,6 +92,13 @@ export default function TrailDetails() {
       form.setValue("coordinates", coordinates);
     }
   };
+
+  const handlePathCoordinatesChange = (pathCoordinates: string) => { //Added handler for path coordinates
+    if (isAdmin) {
+      form.setValue("pathCoordinates", pathCoordinates);
+    }
+  };
+
 
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
@@ -299,6 +308,20 @@ export default function TrailDetails() {
                         )}
                       />
 
+                      <FormField
+                        control={form.control}
+                        name="pathCoordinates"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Path Coordinates</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Use the map drawing tools to set path" readOnly />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -391,6 +414,7 @@ export default function TrailDetails() {
             <EditableMap
               trail={trail}
               onCoordinatesChange={handleCoordinatesChange}
+              onPathCoordinatesChange={handlePathCoordinatesChange} // Added onPathCoordinatesChange prop
             />
           </div>
         </div>

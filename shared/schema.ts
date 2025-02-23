@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ export const trails = pgTable("trails", {
   duration: text("duration").notNull(),
   location: text("location").notNull(),
   coordinates: text("coordinates").notNull(),
+  pathCoordinates: text("path_coordinates"),
   imageUrl: text("image_url"),
   aiSummary: text("ai_summary"),
   bestSeason: text("best_season"),

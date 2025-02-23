@@ -7,12 +7,14 @@ import { mapLoader } from "@/lib/map-loader";
 interface EditableMapProps {
   trail?: Trail;
   onCoordinatesChange: (coordinates: string) => void;
+  onPathCoordinatesChange: (pathCoordinates: string) => void;
 }
 
-export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
+export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChange }: EditableMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -105,6 +107,30 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
           }
         }
 
+        // Add existing path if pathCoordinates exist
+        if (trail?.pathCoordinates) {
+          const path = trail.pathCoordinates.split(';').map(coord => {
+            const [lat, lng] = coord.split(',').map(Number);
+            return new google.maps.LatLng(lat, lng);
+          });
+
+          polylineRef.current = new google.maps.Polyline({
+            path,
+            strokeColor: '#FF0000',
+            strokeOpacity: 1.0,
+            strokeWeight: 2,
+            editable: true,
+            map: googleMapRef.current
+          });
+
+          google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', () => {
+            const newPath = polylineRef.current?.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+            if (newPath) {
+              onPathCoordinatesChange(newPath);
+            }
+          });
+        }
+
         // Handle new marker creation
         google.maps.event.addListener(drawingManagerRef.current, "markercomplete", (marker: google.maps.Marker) => {
           // Remove old marker if it exists
@@ -130,9 +156,19 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
 
         // Handle polyline complete
         google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
+          // Remove old polyline if it exists
+          if (polylineRef.current) {
+            polylineRef.current.setMap(null);
+          }
+
+          polylineRef.current = polyline;
           const path = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
-          console.log("Polyline path:", path);
-          onCoordinatesChange(path);
+          onPathCoordinatesChange(path);
+
+          google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
+            const newPath = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+            onPathCoordinatesChange(newPath);
+          });
         });
 
       })
@@ -145,11 +181,14 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
       if (markerRef.current) {
         markerRef.current.setMap(null);
       }
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+      }
       if (drawingManagerRef.current) {
         drawingManagerRef.current.setMap(null);
       }
     };
-  }, [trail, isEditing, onCoordinatesChange]);
+  }, [trail, isEditing, onCoordinatesChange, onPathCoordinatesChange]);
 
   return (
     <div className="flex flex-col h-full">
