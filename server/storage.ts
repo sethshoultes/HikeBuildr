@@ -29,6 +29,52 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
+
+    // Add sample trails
+    this.initializeSampleTrails();
+  }
+
+  private initializeSampleTrails() {
+    const sampleTrails: Omit<Trail, "id">[] = [
+      {
+        name: "Mount Tamalpais Loop",
+        description: "Scenic loop with bay views",
+        difficulty: "Moderate",
+        distance: "7.5 miles",
+        duration: "4-5 hours",
+        location: "Mill Valley, CA",
+        coordinates: "37.9235,-122.5965",
+        imageUrl: "https://example.com/tamalpais.jpg",
+        aiSummary: "Popular hiking destination with panoramic views of the Bay Area",
+      },
+      {
+        name: "Muir Woods Trail",
+        description: "Ancient redwood forest trail",
+        difficulty: "Easy",
+        distance: "2 miles",
+        duration: "1-2 hours",
+        location: "Mill Valley, CA",
+        coordinates: "37.8912,-122.5715",
+        imageUrl: "https://example.com/muir-woods.jpg",
+        aiSummary: "Easy walk through majestic redwood groves",
+      },
+      {
+        name: "Angel Island Perimeter Trail",
+        description: "Coastal trail with city views",
+        difficulty: "Moderate",
+        distance: "5.5 miles",
+        duration: "3-4 hours",
+        location: "Angel Island, CA",
+        coordinates: "37.8609,-122.4326",
+        imageUrl: "https://example.com/angel-island.jpg",
+        aiSummary: "Historic island trail with 360-degree bay views",
+      },
+    ];
+
+    sampleTrails.forEach((trail) => {
+      const id = this.currentTrailId++;
+      this.trails.set(id, { ...trail, id });
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -61,7 +107,8 @@ export class MemStorage implements IStorage {
     return Array.from(this.trails.values()).filter(
       (trail) =>
         trail.name.toLowerCase().includes(lowerQuery) ||
-        trail.location.toLowerCase().includes(lowerQuery)
+        trail.location.toLowerCase().includes(lowerQuery) ||
+        trail.description.toLowerCase().includes(lowerQuery)
     );
   }
 }

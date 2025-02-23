@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -9,14 +9,28 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch }: SearchBarProps) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch(query);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 300); // Wait 300ms after last keystroke before searching
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    onSearch(debouncedQuery);
+  }, [debouncedQuery, onSearch]);
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form 
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSearch(query);
+      }} 
+      className="flex gap-2"
+    >
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
