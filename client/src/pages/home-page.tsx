@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { MapView } from "@/components/map-view";
+import { ViewOnlyMap } from "@/components/view-only-map";
 import { SearchBar } from "@/components/search-bar";
 import { TrailCard } from "@/components/trail-card";
 import { Trail } from "@shared/schema";
@@ -43,7 +43,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           <div className="lg:col-span-1 h-[600px]">
-            <MapView
+            <ViewOnlyMap
               trails={trails || []}
               onTrailClick={handleTrailClick}
             />
@@ -62,7 +62,11 @@ export default function HomePage() {
               </div>
             ) : (
               trails?.map((trail) => (
-                <TrailCard key={trail.id} trail={trail} />
+                <TrailCard
+                  key={trail.id}
+                  trail={trail}
+                  onClick={() => handleTrailClick(trail)}
+                />
               ))
             )}
           </div>

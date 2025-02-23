@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { MapView } from "@/components/map-view";
+import { EditableMap } from "@/components/editable-map";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trail, insertTrailSchema } from "@shared/schema";
@@ -68,7 +68,6 @@ export default function TrailDetails() {
 
   useEffect(() => {
     if (trail) {
-      // Convert null values to undefined and prepare the data for the form
       const formData = {
         name: trail.name,
         description: trail.description,
@@ -86,7 +85,7 @@ export default function TrailDetails() {
     }
   }, [trail, form]);
 
-  const handleTrailEdit = (trailId: number, coordinates: string) => {
+  const handleCoordinatesChange = (coordinates: string) => {
     if (isAdmin) {
       form.setValue("coordinates", coordinates);
     }
@@ -389,10 +388,9 @@ export default function TrailDetails() {
           </div>
 
           <div className="h-[600px]">
-            <MapView
-              trails={trail ? [trail] : []}
-              centered
-              onTrailEdit={handleTrailEdit}
+            <EditableMap
+              trail={trail}
+              onCoordinatesChange={handleCoordinatesChange}
             />
           </div>
         </div>
