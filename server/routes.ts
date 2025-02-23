@@ -3,7 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { generateTrailDescription, generateGearList } from "./openai";
-import os from "os";
+import { requireAuth, requireRole } from "./middleware/auth";
+import { insertTrailSchema } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // In-memory storage for logs
 const apiLogs: Array<{
@@ -76,16 +78,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next(err);
   });
 
-  // Admin routes
-  app.get("/api/admin/logs", (_req, res) => {
+  // Admin routes with role-based protection
+  app.get("/api/admin/logs", requireRole(["admin"]), (_req, res) => {
     res.json(apiLogs);
   });
 
-  app.get("/api/admin/errors", (_req, res) => {
+  app.get("/api/admin/errors", requireRole(["admin"]), (_req, res) => {
     res.json(errorLogs);
   });
 
-  app.get("/api/admin/status", (_req, res) => {
+  app.get("/api/admin/status", requireRole(["admin"]), (_req, res) => {
     const memoryUsage = process.memoryUsage();
 
     res.json({
@@ -99,7 +101,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Existing routes
+  // Trail management routes
+  app.post("/api/trails", requireRole(["admin", "guide"]), async (req, res) => {
+    const trail = await storage.createTrail({
+      ...req.body,
+      createdById: req.user.id,
+      lastUpdatedById: req.user.id,
+    });
+    res.status(201).json(trail);
+  });
+
+  app.patch("/api/trails/:id", requireRole(["admin", "guide"]), async (req, res) => {
+    const trail = await storage.updateTrail(parseInt(req.params.id), {
+      ...req.body,
+      lastUpdatedById: req.user.id,
+    });
+    if (!trail) {
+      return res.status(404).send("Trail not found");
+    }
+    res.json(trail);
+  });
+
+  app.delete("/api/trails/:id", requireRole(["admin"]), async (req, res) => {
+    await storage.deleteTrail(parseInt(req.params.id));
+    res.sendStatus(204);
+  });
+
+  // Existing routes with added auth where needed
   app.get("/api/trails", async (_req, res) => {
     const trails = await storage.getTrails();
     res.json(trails);
@@ -119,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(trail);
   });
 
-  app.post("/api/trails/:id/ai-description", async (req, res) => {
+  app.post("/api/trails/:id/ai-description", requireAuth, async (req, res) => {
     const trail = await storage.getTrailById(parseInt(req.params.id));
     if (!trail) {
       return res.status(404).send("Trail not found");
@@ -128,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ description });
   });
 
-  app.post("/api/trails/:id/gear", async (req, res) => {
+  app.post("/api/trails/:id/gear", requireAuth, async (req, res) => {
     const trail = await storage.getTrailById(parseInt(req.params.id));
     if (!trail) {
       return res.status(404).send("Trail not found");

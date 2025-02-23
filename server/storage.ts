@@ -3,6 +3,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { hashPassword } from "./utils/password";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -14,6 +15,9 @@ export interface IStorage {
   getTrailById(id: number): Promise<Trail | undefined>;
   searchTrails(query: string): Promise<Trail[]>;
   sessionStore: session.Store;
+  createTrail(trail: Omit<Trail, "id">): Promise<Trail>;
+  updateTrail(id: number, trail: Partial<Trail>): Promise<Trail | undefined>;
+  deleteTrail(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -23,7 +27,10 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
-    this.initializeSampleTrails();
+    Promise.all([
+      this.initializeSampleTrails(),
+      this.initializeAdminUser()
+    ]).catch(console.error);
   }
 
   private async initializeSampleTrails() {
@@ -101,6 +108,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  private async initializeAdminUser() {
+    const adminUsername = "seth";
+    const existingAdmin = await this.getUserByUsername(adminUsername);
+
+    if (!existingAdmin) {
+      await this.createUser({
+        username: adminUsername,
+        password: await hashPassword("admin123"),
+        role: "admin"
+      });
+    }
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -137,6 +157,24 @@ export class DatabaseStorage implements IStorage {
         trail.location.toLowerCase().includes(lowerQuery) ||
         trail.description.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  async createTrail(trail: Omit<Trail, "id">): Promise<Trail> {
+    const [newTrail] = await db.insert(trails).values(trail).returning();
+    return newTrail;
+  }
+
+  async updateTrail(id: number, trail: Partial<Trail>): Promise<Trail | undefined> {
+    const [updatedTrail] = await db
+      .update(trails)
+      .set(trail)
+      .where(eq(trails.id, id))
+      .returning();
+    return updatedTrail;
+  }
+
+  async deleteTrail(id: number): Promise<void> {
+    await db.delete(trails).where(eq(trails.id, id));
   }
 }
 

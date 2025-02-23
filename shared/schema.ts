@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("user"),
   favorites: text("favorites").array().default([]),
 });
 
@@ -23,11 +24,12 @@ export const trails = pgTable("trails", {
   aiSummary: text("ai_summary"),
   bestSeason: text("best_season"),
   parkingInfo: text("parking_info"),
+  createdById: integer("created_by_id").references(() => users.id),
+  lastUpdatedById: integer("last_updated_by_id").references(() => users.id),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).extend({
+  role: z.enum(["user", "guide", "admin"]).default("user"),
 });
 
 export const insertTrailSchema = createInsertSchema(trails);
