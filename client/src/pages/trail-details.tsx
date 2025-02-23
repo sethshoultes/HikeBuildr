@@ -105,8 +105,16 @@ export default function TrailDetails() {
       const res = await apiRequest(
         id === "new" ? "POST" : "PATCH",
         id === "new" ? "/api/trails" : `/api/trails/${id}`,
-        data
+        {
+          ...data,
+          // Ensure pathCoordinates is properly included in the mutation
+          pathCoordinates: form.getValues("pathCoordinates") || null,
+        }
       );
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update trail");
+      }
       return await res.json();
     },
     onSuccess: () => {
