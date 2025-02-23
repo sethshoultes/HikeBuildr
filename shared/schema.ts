@@ -15,11 +15,14 @@ export const trails = pgTable("trails", {
   description: text("description").notNull(),
   difficulty: text("difficulty").notNull(),
   distance: text("distance").notNull(),
+  elevation: text("elevation").notNull(),
   duration: text("duration").notNull(),
   location: text("location").notNull(),
   coordinates: text("coordinates").notNull(),
   imageUrl: text("image_url"),
   aiSummary: text("ai_summary"),
+  bestSeason: text("best_season"),
+  parkingInfo: text("parking_info"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

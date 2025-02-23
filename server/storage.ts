@@ -1,4 +1,6 @@
 import { users, trails, type User, type Trail, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -14,97 +16,122 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private trails: Map<number, Trail>;
+export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
-  private currentUserId: number;
-  private currentTrailId: number;
 
   constructor() {
-    this.users = new Map();
-    this.trails = new Map();
-    this.currentUserId = 1;
-    this.currentTrailId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
-
-    // Add sample trails
     this.initializeSampleTrails();
   }
 
-  private initializeSampleTrails() {
-    const sampleTrails: Omit<Trail, "id">[] = [
-      {
-        name: "Mount Tamalpais Loop",
-        description: "Scenic loop with bay views",
-        difficulty: "Moderate",
-        distance: "7.5 miles",
-        duration: "4-5 hours",
-        location: "Mill Valley, CA",
-        coordinates: "37.9235,-122.5965",
-        imageUrl: "https://example.com/tamalpais.jpg",
-        aiSummary: "Popular hiking destination with panoramic views of the Bay Area",
-      },
-      {
-        name: "Muir Woods Trail",
-        description: "Ancient redwood forest trail",
-        difficulty: "Easy",
-        distance: "2 miles",
-        duration: "1-2 hours",
-        location: "Mill Valley, CA",
-        coordinates: "37.8912,-122.5715",
-        imageUrl: "https://example.com/muir-woods.jpg",
-        aiSummary: "Easy walk through majestic redwood groves",
-      },
-      {
-        name: "Angel Island Perimeter Trail",
-        description: "Coastal trail with city views",
-        difficulty: "Moderate",
-        distance: "5.5 miles",
-        duration: "3-4 hours",
-        location: "Angel Island, CA",
-        coordinates: "37.8609,-122.4326",
-        imageUrl: "https://example.com/angel-island.jpg",
-        aiSummary: "Historic island trail with 360-degree bay views",
-      },
-    ];
+  private async initializeSampleTrails() {
+    const existingTrails = await this.getTrails();
+    if (existingTrails.length === 0) {
+      const sampleTrails = [
+        {
+          name: "Angels Landing",
+          description: "One of the most famous and thrilling hikes in Zion National Park",
+          difficulty: "Strenuous",
+          distance: "5.4 miles",
+          elevation: "1,488 feet",
+          duration: "4-6 hours",
+          location: "Zion National Park, Utah",
+          coordinates: "37.2690,-112.9469",
+          imageUrl: "https://example.com/angels-landing.jpg",
+          bestSeason: "Spring and Fall",
+          parkingInfo: "Parking available at the Grotto Trailhead",
+        },
+        {
+          name: "The Narrows",
+          description: "Iconic water hike through the narrowest section of Zion Canyon",
+          difficulty: "Moderate to Strenuous",
+          distance: "Up to 16 miles",
+          elevation: "334 feet",
+          duration: "4-8 hours",
+          location: "Zion National Park, Utah",
+          coordinates: "37.3045,-112.9477",
+          imageUrl: "https://example.com/the-narrows.jpg",
+          bestSeason: "Late Spring to Fall",
+          parkingInfo: "Temple of Sinawava shuttle stop",
+        },
+        {
+          name: "Emerald Pools Trail",
+          description: "Series of three pools with waterfalls and hanging gardens",
+          difficulty: "Easy to Moderate",
+          distance: "3 miles",
+          elevation: "350 feet",
+          duration: "2-4 hours",
+          location: "Zion National Park, Utah",
+          coordinates: "37.2516,-112.9507",
+          imageUrl: "https://example.com/emerald-pools.jpg",
+          bestSeason: "Year-round",
+          parkingInfo: "Zion Lodge parking area",
+        },
+        {
+          name: "Observation Point",
+          description: "Highest point in Zion with panoramic views",
+          difficulty: "Strenuous",
+          distance: "8 miles",
+          elevation: "2,148 feet",
+          duration: "6-8 hours",
+          location: "Zion National Park, Utah",
+          coordinates: "37.2709,-112.9431",
+          imageUrl: "https://example.com/observation-point.jpg",
+          bestSeason: "Spring and Fall",
+          parkingInfo: "Weeping Rock parking area",
+        },
+        {
+          name: "Watchman Trail",
+          description: "Less crowded trail with views of Springdale and the Towers of the Virgin",
+          difficulty: "Moderate",
+          distance: "3.3 miles",
+          elevation: "368 feet",
+          duration: "2-3 hours",
+          location: "Zion National Park, Utah",
+          coordinates: "37.2001,-112.9847",
+          imageUrl: "https://example.com/watchman-trail.jpg",
+          bestSeason: "Year-round",
+          parkingInfo: "Visitor Center parking lot",
+        }
+      ];
 
-    sampleTrails.forEach((trail) => {
-      const id = this.currentTrailId++;
-      this.trails.set(id, { ...trail, id });
-    });
+      await db.insert(trails).values(sampleTrails);
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id, favorites: [] };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async getTrails(): Promise<Trail[]> {
-    return Array.from(this.trails.values());
+    return await db.select().from(trails);
   }
 
   async getTrailById(id: number): Promise<Trail | undefined> {
-    return this.trails.get(id);
+    const [trail] = await db.select().from(trails).where(eq(trails.id, id));
+    return trail;
   }
 
   async searchTrails(query: string): Promise<Trail[]> {
     const lowerQuery = query.toLowerCase();
-    return Array.from(this.trails.values()).filter(
+    const allTrails = await this.getTrails();
+    return allTrails.filter(
       (trail) =>
         trail.name.toLowerCase().includes(lowerQuery) ||
         trail.location.toLowerCase().includes(lowerQuery) ||
@@ -113,4 +140,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
