@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -22,11 +21,7 @@ export default function HomePage() {
   });
 
   const handleTrailClick = (trail: Trail) => {
-    setSelectedTrail(trail);
-  };
-
-  const handleTrailCardClick = (trail: Trail) => {
-    setSelectedTrail(trail);
+    setLocation(`/trail/${trail.id}`);
   };
 
   return (
@@ -49,9 +44,8 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           <div className="lg:col-span-1 h-[600px]">
             <MapView
-              trails={selectedTrail ? [selectedTrail] : trails || []}
+              trails={trails || []}
               onTrailClick={handleTrailClick}
-              editMode={false}
             />
           </div>
 
@@ -68,12 +62,7 @@ export default function HomePage() {
               </div>
             ) : (
               trails?.map((trail) => (
-                <TrailCard 
-                  key={trail.id} 
-                  trail={trail} 
-                  onSelect={handleTrailCardClick}
-                  selected={selectedTrail?.id === trail.id}
-                />
+                <TrailCard key={trail.id} trail={trail} />
               ))
             )}
           </div>

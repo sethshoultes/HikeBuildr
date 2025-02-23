@@ -63,7 +63,7 @@ export default function TrailDetails() {
       imageUrl: "",
       bestSeason: "",
       parkingInfo: "",
-      routeCoordinates: [] as string[], // Ensure array type
+      routeCoordinates: [] as string[], // Change type to string[]
     },
   });
 
@@ -95,26 +95,17 @@ export default function TrailDetails() {
 
   const handleRouteEdit = (trailId: number, routeCoordinates: string[]) => {
     if (isAdmin) {
-      form.setValue("routeCoordinates", routeCoordinates, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true
-      });
+      form.setValue("routeCoordinates", routeCoordinates);
     }
   };
 
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
-      console.log("Submitting trail data:", data); // Debug log
       const res = await apiRequest(
         id === "new" ? "POST" : "PATCH",
         id === "new" ? "/api/trails" : `/api/trails/${id}`,
         data
       );
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to save trail");
-      }
       return await res.json();
     },
     onSuccess: () => {
@@ -468,7 +459,6 @@ export default function TrailDetails() {
               centered
               onTrailEdit={handleTrailEdit}
               onRouteEdit={handleRouteEdit}
-              editMode={true}
             />
           </div>
         </div>
