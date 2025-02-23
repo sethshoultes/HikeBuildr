@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -50,7 +51,7 @@ export default function TrailDetails() {
 
   const form = useForm({
     resolver: zodResolver(insertTrailSchema),
-    defaultValues: trail || {
+    defaultValues: {
       name: "",
       description: "",
       difficulty: "Easy",
@@ -64,6 +65,12 @@ export default function TrailDetails() {
       parkingInfo: "",
     },
   });
+
+  useEffect(() => {
+    if (trail) {
+      form.reset(trail);
+    }
+  }, [trail, form]);
 
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
