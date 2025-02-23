@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { Trail } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Map, Edit3 } from "lucide-react";
+import { mapLoader } from "@/lib/map-loader";
 
 interface EditableMapProps {
   trail?: Trail;
@@ -17,15 +17,9 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-      libraries: ["drawing"],
-    });
-
     let mounted = true;
 
-    loader
+    mapLoader
       .load()
       .then((google) => {
         if (!mounted || !mapRef.current) return;
@@ -57,7 +51,6 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
               stylers: [{ color: "#e8f5e9" }],
             },
           ],
-          // Enable all controls
           zoomControl: true,
           mapTypeControl: true,
           scaleControl: true,
@@ -138,8 +131,8 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
         // Handle polyline complete
         google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
           const path = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
-          console.log("Polyline path:", path); // Add logging for debugging
-          onCoordinatesChange(path); // Assuming onCoordinatesChange handles both points and polylines
+          console.log("Polyline path:", path);
+          onCoordinatesChange(path);
         });
 
       })

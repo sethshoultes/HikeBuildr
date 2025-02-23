@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { Trail } from "@shared/schema";
+import { mapLoader } from "@/lib/map-loader";
 
 interface ViewOnlyMapProps {
   trails: Trail[];
@@ -13,14 +13,9 @@ export function ViewOnlyMap({ trails, onTrailClick }: ViewOnlyMapProps) {
   const markersRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
-    const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-      version: "weekly",
-    });
-
     let mounted = true;
 
-    loader
+    mapLoader
       .load()
       .then((google) => {
         if (!mounted || !mapRef.current) return;
