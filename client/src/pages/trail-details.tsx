@@ -60,7 +60,7 @@ export default function TrailDetails() {
       duration: "",
       location: "",
       coordinates: "",
-      pathCoordinates: "", // Added pathCoordinates to defaultValues
+      pathCoordinates: "",
       imageUrl: "",
       bestSeason: "",
       parkingInfo: "",
@@ -78,7 +78,7 @@ export default function TrailDetails() {
         duration: trail.duration,
         location: trail.location,
         coordinates: trail.coordinates,
-        pathCoordinates: trail.pathCoordinates || "", // Added pathCoordinates to formData
+        pathCoordinates: trail.pathCoordinates || "",
         imageUrl: trail.imageUrl || "",
         bestSeason: trail.bestSeason || "",
         parkingInfo: trail.parkingInfo || "",
@@ -93,9 +93,12 @@ export default function TrailDetails() {
     }
   };
 
-  const handlePathCoordinatesChange = (pathCoordinates: string) => { //Added handler for path coordinates
+  const handlePathCoordinatesChange = (pathCoordinates: string) => {
     if (isAdmin) {
-      form.setValue("pathCoordinates", pathCoordinates);
+      form.setValue("pathCoordinates", pathCoordinates, {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
     }
   };
 
@@ -118,6 +121,7 @@ export default function TrailDetails() {
       return await res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/trails/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
       toast({
         title: "Success",
@@ -422,7 +426,7 @@ export default function TrailDetails() {
             <EditableMap
               trail={trail}
               onCoordinatesChange={handleCoordinatesChange}
-              onPathCoordinatesChange={handlePathCoordinatesChange} // Added onPathCoordinatesChange prop
+              onPathCoordinatesChange={handlePathCoordinatesChange}
             />
           </div>
         </div>
