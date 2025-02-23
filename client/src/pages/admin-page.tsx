@@ -36,7 +36,11 @@ export default function AdminPage() {
 
   const { data: systemStatus } = useQuery<{
     uptime: number;
-    memory: { used: number; total: number };
+    memory: {
+      heapUsed: number;
+      heapTotal: number;
+      rss: number;
+    };
     activeUsers: number;
   }>({
     queryKey: ["/api/admin/status"],
@@ -64,11 +68,21 @@ export default function AdminPage() {
             <CardTitle>Memory Usage</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl">
-              {systemStatus
-                ? `${Math.round((systemStatus.memory.used / systemStatus.memory.total) * 100)}%`
-                : "Loading..."}
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Heap Memory</p>
+              <p className="text-2xl">
+                {systemStatus
+                  ? `${Math.round((systemStatus.memory.heapUsed / systemStatus.memory.heapTotal) * 100)}%`
+                  : "Loading..."}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {systemStatus
+                  ? `${(systemStatus.memory.heapUsed / 1024 / 1024).toFixed(1)} MB / ${(
+                      systemStatus.memory.heapTotal / 1024 / 1024
+                    ).toFixed(1)} MB`
+                  : ""}
+              </p>
+            </div>
           </CardContent>
         </Card>
 

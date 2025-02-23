@@ -86,15 +86,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/status", (_req, res) => {
-    const totalMemory = os.totalmem();
-    const freeMemory = os.freemem();
-    const usedMemory = totalMemory - freeMemory;
+    const memoryUsage = process.memoryUsage();
 
     res.json({
       uptime: (Date.now() - startTime) / 1000, // in seconds
       memory: {
-        used: usedMemory,
-        total: totalMemory,
+        heapUsed: memoryUsage.heapUsed,
+        heapTotal: memoryUsage.heapTotal,
+        rss: memoryUsage.rss,
       },
       activeUsers: 0, // To be implemented with session tracking
     });
