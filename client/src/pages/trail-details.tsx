@@ -59,7 +59,8 @@ export default function TrailDetails() {
       elevation: "",
       duration: "",
       location: "",
-      coordinates: "",
+      startCoordinates: "",
+      pathCoordinates: [],
       imageUrl: "",
       bestSeason: "",
       parkingInfo: "",
@@ -77,7 +78,8 @@ export default function TrailDetails() {
         elevation: trail.elevation,
         duration: trail.duration,
         location: trail.location,
-        coordinates: trail.coordinates,
+        startCoordinates: trail.startCoordinates,
+        pathCoordinates: trail.pathCoordinates || [],
         imageUrl: trail.imageUrl || "",
         bestSeason: trail.bestSeason || "",
         parkingInfo: trail.parkingInfo || "",
@@ -86,9 +88,17 @@ export default function TrailDetails() {
     }
   }, [trail, form]);
 
-  const handleTrailEdit = (trailId: number, coordinates: string) => {
+  const handleTrailEdit = (trailId: number, updates: {
+    startCoordinates?: string;
+    pathCoordinates?: string[];
+  }) => {
     if (isAdmin) {
-      form.setValue("coordinates", coordinates);
+      if (updates.startCoordinates) {
+        form.setValue("startCoordinates", updates.startCoordinates);
+      }
+      if (updates.pathCoordinates) {
+        form.setValue("pathCoordinates", updates.pathCoordinates);
+      }
     }
   };
 
@@ -288,12 +298,30 @@ export default function TrailDetails() {
 
                       <FormField
                         control={form.control}
-                        name="coordinates"
+                        name="startCoordinates"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Coordinates</FormLabel>
+                            <FormLabel>Starting Point Coordinates</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Use the map to set coordinates" readOnly />
+                              <Input {...field} placeholder="Use the map to set starting point" readOnly />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="pathCoordinates"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Trail Path</FormLabel>
+                            <FormControl>
+                              <Input 
+                                value={field.value.length > 0 ? `${field.value.length} points captured` : "No path drawn"}
+                                placeholder="Use the Draw Path button to create trail route"
+                                readOnly 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

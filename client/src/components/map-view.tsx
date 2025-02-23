@@ -3,13 +3,17 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { Trail } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Map, Edit3, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Map, Edit3, Search, Route } from "lucide-react";
 
 interface MapViewProps {
   trails: Trail[];
   centered?: boolean;
   onTrailClick?: (trail: Trail) => void;
-  onTrailEdit?: (trailId: number, coordinates: string) => void;
+  onTrailEdit?: (trailId: number, updates: {
+    startCoordinates?: string;
+    pathCoordinates?: string[];
+  }) => void;
 }
 
 declare global {
@@ -20,10 +24,14 @@ declare global {
 
 export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDrawingPath, setIsDrawingPath] = useState(false);
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
@@ -31,7 +39,7 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
     const loader = new Loader({
       apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
       version: "weekly",
-      libraries: ["drawing"],
+      libraries: ["drawing", "places"],
     });
 
     let mounted = true;
@@ -39,7 +47,7 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
     loader
       .load()
       .then((google) => {
-        if (!mounted || !mapRef.current) return;
+        if (!mounted || !mapRef.current || !searchInputRef.current) return;
 
         const defaultCenter = { lat: 37.7749, lng: -122.4194 };
         googleMapRef.current = new google.maps.Map(mapRef.current, {
@@ -59,6 +67,24 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
           ],
         });
 
+        // Initialize SearchBox
+        searchBoxRef.current = new google.maps.places.SearchBox(searchInputRef.current);
+
+        // Listen for search results
+        searchBoxRef.current.addListener("places_changed", () => {
+          const places = searchBoxRef.current?.getPlaces();
+          if (places?.length) {
+            const place = places[0];
+            const bounds = new google.maps.LatLngBounds();
+            if (place.geometry?.viewport) {
+              bounds.union(place.geometry.viewport);
+            } else if (place.geometry?.location) {
+              bounds.extend(place.geometry.location);
+            }
+            googleMapRef.current?.fitBounds(bounds);
+          }
+        });
+
         if (trails.length > 0) {
           const bounds = new google.maps.LatLngBounds();
 
@@ -68,12 +94,12 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
 
           trails.forEach((trail) => {
             try {
-              const [latStr, lngStr] = trail.coordinates.split(",");
+              const [latStr, lngStr] = trail.startCoordinates.split(",");
               const lat = parseFloat(latStr);
               const lng = parseFloat(lngStr);
 
               if (isNaN(lat) || isNaN(lng)) {
-                console.warn(`Invalid coordinates for trail ${trail.id}: ${trail.coordinates}`);
+                console.warn(`Invalid coordinates for trail ${trail.id}: ${trail.startCoordinates}`);
                 return;
               }
 
@@ -102,12 +128,30 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
                 marker.addListener("dragend", () => {
                   const newPosition = marker.getPosition();
                   if (newPosition && onTrailEdit) {
-                    onTrailEdit(trail.id, `${newPosition.lat()},${newPosition.lng()}`);
+                    onTrailEdit(trail.id, {
+                      startCoordinates: `${newPosition.lat()},${newPosition.lng()}`
+                    });
                   }
                 });
               }
 
               markersRef.current.push(marker);
+
+              // Draw trail path if it exists
+              if (trail.pathCoordinates?.length) {
+                const path = trail.pathCoordinates.map(coord => {
+                  const [lat, lng] = coord.split(",").map(Number);
+                  return { lat, lng };
+                });
+
+                new google.maps.Polyline({
+                  path,
+                  map: googleMapRef.current,
+                  strokeColor: "#FF0000",
+                  strokeOpacity: 1.0,
+                  strokeWeight: 2,
+                });
+              }
             } catch (error) {
               console.warn(`Error processing trail ${trail.id}:`, error);
             }
@@ -121,11 +165,16 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
         // Set up drawing manager for edit mode
         if (isAdmin) {
           drawingManagerRef.current = new google.maps.drawing.DrawingManager({
-            drawingMode: isEditing ? google.maps.drawing.OverlayType.MARKER : null,
+            drawingMode: isEditing ? 
+              (isDrawingPath ? google.maps.drawing.OverlayType.POLYLINE : google.maps.drawing.OverlayType.MARKER)
+              : null,
             drawingControl: isEditing,
             drawingControlOptions: {
               position: google.maps.ControlPosition.TOP_CENTER,
-              drawingModes: [google.maps.drawing.OverlayType.MARKER],
+              drawingModes: [
+                google.maps.drawing.OverlayType.MARKER,
+                google.maps.drawing.OverlayType.POLYLINE
+              ],
             },
           });
 
@@ -133,14 +182,36 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
 
           // Handle new marker creation
           if (isEditing) {
-            google.maps.event.addListener(drawingManagerRef.current, "markercomplete", (marker: google.maps.Marker) => {
-              const position = marker.getPosition();
-              if (position && onTrailEdit) {
-                // For new trails, we'll pass id as -1
-                onTrailEdit(-1, `${position.lat()},${position.lng()}`);
-                marker.setMap(null); // Remove temporary marker
+            google.maps.event.addListener(
+              drawingManagerRef.current,
+              "markercomplete",
+              (marker: google.maps.Marker) => {
+                const position = marker.getPosition();
+                if (position && onTrailEdit) {
+                  // For new trails, we'll pass id as -1
+                  onTrailEdit(-1, {
+                    startCoordinates: `${position.lat()},${position.lng()}`
+                  });
+                  marker.setMap(null); // Remove temporary marker
+                }
               }
-            });
+            );
+
+            google.maps.event.addListener(
+              drawingManagerRef.current,
+              "polylinecomplete",
+              (polyline: google.maps.Polyline) => {
+                const path = polyline.getPath();
+                const coordinates = Array.from({ length: path.getLength() }, (_, i) => {
+                  const point = path.getAt(i);
+                  return `${point.lat()},${point.lng()}`;
+                });
+
+                if (onTrailEdit) {
+                  onTrailEdit(-1, { pathCoordinates: coordinates });
+                }
+              }
+            );
           }
         }
       })
@@ -156,8 +227,11 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
       if (drawingManagerRef.current) {
         drawingManagerRef.current.setMap(null);
       }
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+      }
     };
-  }, [trails, centered, isEditing, onTrailClick, onTrailEdit]);
+  }, [trails, centered, isEditing, isDrawingPath, onTrailClick, onTrailEdit]);
 
   if (!isAdmin) {
     return (
@@ -170,6 +244,15 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
 
   return (
     <div className="relative w-full h-full">
+      {isEditing && (
+        <div className="absolute top-4 left-4 z-10 flex gap-2">
+          <Input
+            ref={searchInputRef}
+            placeholder="Search location..."
+            className="w-64"
+          />
+        </div>
+      )}
       <div
         ref={mapRef}
         className="w-full h-full rounded-lg border border-border shadow-sm"
@@ -178,7 +261,10 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
         <Button
           variant={isEditing ? "destructive" : "secondary"}
           size="sm"
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={() => {
+            setIsEditing(!isEditing);
+            setIsDrawingPath(false);
+          }}
         >
           {isEditing ? (
             <>
@@ -192,6 +278,16 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
             </>
           )}
         </Button>
+        {isEditing && (
+          <Button
+            variant={isDrawingPath ? "destructive" : "secondary"}
+            size="sm"
+            onClick={() => setIsDrawingPath(!isDrawingPath)}
+          >
+            <Route className="h-4 w-4 mr-2" />
+            {isDrawingPath ? "Stop Drawing" : "Draw Path"}
+          </Button>
+        )}
       </div>
     </div>
   );
