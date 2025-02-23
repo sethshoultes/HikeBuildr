@@ -12,7 +12,7 @@ interface MapViewProps {
   onTrailClick?: (trail: Trail) => void;
   onTrailEdit?: (trailId: number, coordinates: string) => void;
   onRouteEdit?: (trailId: number, routeCoordinates: string[]) => void;
-  editMode?: boolean; // Controls edit mode visibility
+  editMode?: boolean;
 }
 
 declare global {
@@ -75,22 +75,24 @@ export function MapView({
           ],
         });
 
-        // Initialize SearchBox
-        searchBoxRef.current = new google.maps.places.SearchBox(searchInputRef.current);
-        googleMapRef.current.controls[google.maps.ControlPosition.TOP_LEFT].push(searchInputRef.current);
+        // Initialize SearchBox for edit mode
+        if (editMode) {
+          searchBoxRef.current = new google.maps.places.SearchBox(searchInputRef.current);
+          googleMapRef.current.controls[google.maps.ControlPosition.TOP_LEFT].push(searchInputRef.current);
 
-        // SearchBox listener
-        searchBoxRef.current.addListener("places_changed", () => {
-          const places = searchBoxRef.current!.getPlaces();
-          if (places.length === 0) return;
+          // SearchBox listener
+          searchBoxRef.current.addListener("places_changed", () => {
+            const places = searchBoxRef.current!.getPlaces();
+            if (places.length === 0) return;
 
-          const bounds = new google.maps.LatLngBounds();
-          places.forEach((place) => {
-            if (!place.geometry || !place.geometry.location) return;
-            bounds.extend(place.geometry.location);
+            const bounds = new google.maps.LatLngBounds();
+            places.forEach((place) => {
+              if (!place.geometry || !place.geometry.location) return;
+              bounds.extend(place.geometry.location);
+            });
+            googleMapRef.current!.fitBounds(bounds);
           });
-          googleMapRef.current!.fitBounds(bounds);
-        });
+        }
 
         if (trails.length > 0) {
           const bounds = new google.maps.LatLngBounds();
@@ -146,8 +148,8 @@ export function MapView({
 
               markersRef.current.push(marker);
 
-              // Draw route if coordinates exist and we're on the trail details page
-              if (editMode && trail.routeCoordinates?.length) {
+              // Draw route if coordinates exist and we're either in edit mode or the trail is selected
+              if (trail.routeCoordinates?.length) {
                 const path = trail.routeCoordinates.map(coord => {
                   const [lat, lng] = coord.split(",").map(Number);
                   return { lat, lng };
@@ -159,11 +161,11 @@ export function MapView({
                   strokeColor: "#FF0000",
                   strokeOpacity: 1.0,
                   strokeWeight: 2,
-                  editable: isEditing,
+                  editable: isEditing && editMode,
                   map: googleMapRef.current,
                 });
 
-                if (isEditing) {
+                if (isEditing && editMode) {
                   polylineRef.current = polyline;
                   google.maps.event.addListener(polyline.getPath(), "set_at", () => {
                     updateRouteCoordinates(polyline);
@@ -266,7 +268,7 @@ export function MapView({
   };
 
   return (
-    <div className={`relative w-full transition-all duration-300 ${isExpanded ? 'h-screen fixed inset-0 z-50 bg-background' : 'h-full'}`}>
+    <div className={`relative ${isExpanded ? 'fixed inset-0 z-50 bg-background p-4' : 'w-full h-full'}`}>
       {editMode && (
         <input
           ref={searchInputRef}
@@ -278,6 +280,7 @@ export function MapView({
       <div
         ref={mapRef}
         className="w-full h-full rounded-lg border border-border shadow-sm"
+        style={{ minHeight: '100%' }}
       />
       {/* Controls container */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
