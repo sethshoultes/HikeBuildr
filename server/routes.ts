@@ -112,15 +112,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Trail management routes
   app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
     try {
+      console.log("Received trail data:", req.body); // Debug log
       const validatedData = insertTrailSchema.parse({
         ...req.body,
         createdById: req.user.id,
         lastUpdatedById: req.user.id,
+        routeCoordinates: req.body.routeCoordinates || [], // Ensure array type
       });
 
       const trail = await storage.createTrail(validatedData);
       res.status(201).json(trail);
     } catch (error) {
+      console.error("Trail creation error:", error); // Debug log
       res.status(400).json({ message: error.message });
     }
   });
@@ -132,9 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid trail ID" });
       }
 
+      console.log("Updating trail data:", req.body); // Debug log
       const validatedData = insertTrailSchema.partial().parse({
         ...req.body,
         lastUpdatedById: req.user.id,
+        routeCoordinates: req.body.routeCoordinates || undefined, // Only update if provided
       });
 
       const trail = await storage.updateTrail(id, validatedData);
@@ -143,6 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(trail);
     } catch (error) {
+      console.error("Trail update error:", error); // Debug log
       res.status(400).json({ message: error.message });
     }
   });
