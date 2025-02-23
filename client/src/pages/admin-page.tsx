@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 interface ApiLog {
   timestamp: string;
@@ -23,15 +25,14 @@ interface ErrorLog {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("api-logs");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: apiLogs, isLoading: isLoadingApiLogs } = useQuery<ApiLog[]>({
     queryKey: ["/api/admin/logs"],
-    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   const { data: errorLogs, isLoading: isLoadingErrors } = useQuery<ErrorLog[]>({
     queryKey: ["/api/admin/errors"],
-    refetchInterval: 5000,
   });
 
   const { data: systemStatus } = useQuery<{
@@ -44,12 +45,34 @@ export default function AdminPage() {
     activeUsers: number;
   }>({
     queryKey: ["/api/admin/status"],
-    refetchInterval: 10000,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/logs"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/errors"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/status"] }),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Card>
