@@ -76,11 +76,6 @@ export function ViewOnlyMap({ trails, onTrailClick }: ViewOnlyMapProps) {
                 if (onTrailClick) {
                   onTrailClick(trail);
                 }
-                // Zoom into the clicked marker
-                if (googleMapRef.current) {
-                  googleMapRef.current.setZoom(15);
-                  googleMapRef.current.panTo(position);
-                }
               });
 
               markersRef.current.push(marker);

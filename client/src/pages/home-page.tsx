@@ -24,10 +24,6 @@ export default function HomePage() {
     setLocation(`/trail/${trail.id}`);
   };
 
-  const handleTrailEdit = (trail: Trail) => {
-    setLocation(`/trail/edit/${trail.id}`); //Corrected to a more likely edit route
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
@@ -70,7 +66,6 @@ export default function HomePage() {
                   key={trail.id}
                   trail={trail}
                   onClick={() => handleTrailClick(trail)}
-                  onEditClick={() => handleTrailEdit(trail)}
                 />
               ))
             )}
