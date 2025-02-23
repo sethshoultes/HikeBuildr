@@ -6,6 +6,7 @@ import { AuthProvider } from "./hooks/use-auth";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
+import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/admin" component={AdminPage} />
       <ProtectedRoute path="/trail/:id" component={TrailDetails} />
       <Route component={NotFound} />
     </Switch>
