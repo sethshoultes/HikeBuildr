@@ -20,7 +20,8 @@ Please provide a natural, engaging description that highlights unique features, 
     temperature: 0.7,
   });
 
-  return response.choices[0].message.content || "No description available";
+  const content = response.choices[0].message.content;
+  return content ?? "No description available";
 }
 
 export async function generateGearList(trail: Trail): Promise<string[]> {
@@ -40,7 +41,11 @@ Provide a JSON array of essential gear items needed for this specific hike.`;
   });
 
   try {
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    if (!content) {
+      return ["Basic hiking shoes", "Water bottle", "Snacks", "Sun protection"];
+    }
+    const result = JSON.parse(content);
     return result.gear || [];
   } catch (error) {
     return ["Basic hiking shoes", "Water bottle", "Snacks", "Sun protection"];
