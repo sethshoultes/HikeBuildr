@@ -32,7 +32,7 @@ export default function TrailDetails() {
 
   const { data: trail, isLoading } = useQuery<Trail>({
     queryKey: [`/api/trails/${id}`],
-    enabled: !!id,
+    enabled: id !== "new" && !!id,
   });
 
   const { data: aiDescription, isLoading: isLoadingAI } = useQuery<{
@@ -95,8 +95,8 @@ export default function TrailDetails() {
   const updateTrailMutation = useMutation({
     mutationFn: async (data: Partial<Trail>) => {
       const res = await apiRequest(
-        id ? "PATCH" : "POST",
-        id ? `/api/trails/${id}` : "/api/trails",
+        id === "new" ? "POST" : "PATCH",
+        id === "new" ? "/api/trails" : `/api/trails/${id}`,
         data
       );
       return await res.json();
@@ -105,9 +105,9 @@ export default function TrailDetails() {
       queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
       toast({
         title: "Success",
-        description: `Trail ${id ? "updated" : "created"} successfully.`,
+        description: `Trail ${id === "new" ? "created" : "updated"} successfully.`,
       });
-      if (!id) {
+      if (id === "new") {
         setLocation("/");
       }
     },
@@ -120,10 +120,26 @@ export default function TrailDetails() {
     },
   });
 
-  if (isLoading) {
+  if (isLoading && id !== "new") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!trail && id !== "new") {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <Button variant="ghost" onClick={() => setLocation("/")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Trails
+            </Button>
+            <h1 className="text-4xl font-bold text-foreground">Trail Not Found</h1>
+          </div>
+        </main>
       </div>
     );
   }
@@ -137,7 +153,7 @@ export default function TrailDetails() {
             Back to Trails
           </Button>
           <h1 className="text-4xl font-bold text-foreground">
-            {id ? trail?.name : "New Trail"}
+            {id === "new" ? "New Trail" : trail?.name}
           </h1>
         </div>
 
@@ -146,7 +162,7 @@ export default function TrailDetails() {
             {isAdmin ? (
               <Card>
                 <CardHeader>
-                  <CardTitle>Edit Trail</CardTitle>
+                  <CardTitle>{id === "new" ? "Create Trail" : "Edit Trail"}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Form {...form}>
@@ -323,7 +339,7 @@ export default function TrailDetails() {
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         )}
                         <Save className="h-4 w-4 mr-2" />
-                        {id ? "Update Trail" : "Create Trail"}
+                        {id === "new" ? "Create Trail" : "Update Trail"}
                       </Button>
                     </form>
                   </Form>

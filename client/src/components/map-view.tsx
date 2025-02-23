@@ -67,41 +67,53 @@ export function MapView({ trails, centered = false, onTrailClick, onTrailEdit }:
           markersRef.current = [];
 
           trails.forEach((trail) => {
-            const [lat, lng] = trail.coordinates.split(",").map(Number);
-            const position = { lat, lng };
+            try {
+              const [latStr, lngStr] = trail.coordinates.split(",");
+              const lat = parseFloat(latStr);
+              const lng = parseFloat(lngStr);
 
-            if (centered) {
-              googleMapRef.current?.setCenter(position);
-            } else {
-              bounds.extend(position);
-            }
-
-            const marker = new google.maps.Marker({
-              position,
-              map: googleMapRef.current,
-              title: trail.name,
-              draggable: isEditing,
-            });
-
-            marker.addListener("click", () => {
-              if (!isEditing && onTrailClick) {
-                onTrailClick(trail);
+              if (isNaN(lat) || isNaN(lng)) {
+                console.warn(`Invalid coordinates for trail ${trail.id}: ${trail.coordinates}`);
+                return;
               }
-            });
 
-            if (isEditing) {
-              marker.addListener("dragend", () => {
-                const newPosition = marker.getPosition();
-                if (newPosition && onTrailEdit) {
-                  onTrailEdit(trail.id, `${newPosition.lat()},${newPosition.lng()}`);
+              const position = { lat, lng };
+
+              if (centered) {
+                googleMapRef.current?.setCenter(position);
+              } else {
+                bounds.extend(position);
+              }
+
+              const marker = new google.maps.Marker({
+                position,
+                map: googleMapRef.current,
+                title: trail.name,
+                draggable: isEditing,
+              });
+
+              marker.addListener("click", () => {
+                if (!isEditing && onTrailClick) {
+                  onTrailClick(trail);
                 }
               });
-            }
 
-            markersRef.current.push(marker);
+              if (isEditing) {
+                marker.addListener("dragend", () => {
+                  const newPosition = marker.getPosition();
+                  if (newPosition && onTrailEdit) {
+                    onTrailEdit(trail.id, `${newPosition.lat()},${newPosition.lng()}`);
+                  }
+                });
+              }
+
+              markersRef.current.push(marker);
+            } catch (error) {
+              console.warn(`Error processing trail ${trail.id}:`, error);
+            }
           });
 
-          if (!centered && trails.length > 1) {
+          if (!centered && markersRef.current.length > 0) {
             googleMapRef.current?.fitBounds(bounds);
           }
         }
