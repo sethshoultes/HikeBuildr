@@ -46,7 +46,8 @@ export function ViewOnlyMap({ trails, onTrailClick }: ViewOnlyMapProps) {
           scaleControl: true,
           streetViewControl: true,
           rotateControl: true,
-          fullscreenControl: true
+          fullscreenControl: true,
+          mapTypeId: google.maps.MapTypeId.TERRAIN
         });
 
         if (trails.length > 0) {

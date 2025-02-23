@@ -57,17 +57,19 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
               stylers: [{ color: "#e8f5e9" }],
             },
           ],
+          // Enable all controls
           zoomControl: true,
           mapTypeControl: true,
           scaleControl: true,
           streetViewControl: true,
           rotateControl: true,
-          fullscreenControl: true
+          fullscreenControl: true,
+          mapTypeId: google.maps.MapTypeId.TERRAIN
         });
 
         // Set up drawing manager
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
-          drawingMode: google.maps.drawing.OverlayType.MARKER,
+          drawingMode: isEditing ? google.maps.drawing.OverlayType.MARKER : null,
           drawingControl: isEditing,
           drawingControlOptions: {
             position: google.maps.ControlPosition.TOP_CENTER,
@@ -76,6 +78,15 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
               google.maps.drawing.OverlayType.POLYLINE,
             ],
           },
+          markerOptions: {
+            draggable: true
+          },
+          polylineOptions: {
+            strokeColor: '#FF0000',
+            strokeOpacity: 1.0,
+            strokeWeight: 2,
+            editable: true
+          }
         });
 
         drawingManagerRef.current.setMap(googleMapRef.current);
@@ -124,6 +135,13 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
           });
         });
 
+        // Handle polyline complete
+        google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
+          const path = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+          console.log("Polyline path:", path); // Add logging for debugging
+          onCoordinatesChange(path); // Assuming onCoordinatesChange handles both points and polylines
+        });
+
       })
       .catch((error) => {
         console.error("Error loading Google Maps:", error);
@@ -141,7 +159,7 @@ export function EditableMap({ trail, onCoordinatesChange }: EditableMapProps) {
   }, [trail, isEditing, onCoordinatesChange]);
 
   return (
-    <div className="w-full h-full">
+    <div className="flex flex-col h-full">
       <div
         ref={mapRef}
         className="w-full h-[600px] rounded-lg border border-border shadow-sm"
