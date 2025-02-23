@@ -3,7 +3,7 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { Trail } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Map, Edit3, Search, Maximize2, Minimize2 } from "lucide-react";
+import { Map, Edit3, Maximize2, Minimize2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface MapViewProps {
@@ -12,6 +12,7 @@ interface MapViewProps {
   onTrailClick?: (trail: Trail) => void;
   onTrailEdit?: (trailId: number, coordinates: string) => void;
   onRouteEdit?: (trailId: number, routeCoordinates: string[]) => void;
+  editMode?: boolean; // Controls edit mode visibility
 }
 
 declare global {
@@ -25,7 +26,8 @@ export function MapView({
   centered = false,
   onTrailClick,
   onTrailEdit,
-  onRouteEdit
+  onRouteEdit,
+  editMode = false
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<google.maps.Map | null>(null);
@@ -44,7 +46,7 @@ export function MapView({
       apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
       version: "weekly",
       libraries: ["places", "drawing"],
-      mapIds: [], // Empty array to prevent duplicate loading
+      mapIds: [],
     });
 
     let mounted = true;
@@ -124,7 +126,7 @@ export function MapView({
                 position,
                 map: googleMapRef.current,
                 title: trail.name,
-                draggable: isEditing,
+                draggable: isEditing && editMode,
               });
 
               marker.addListener("click", () => {
@@ -133,7 +135,7 @@ export function MapView({
                 }
               });
 
-              if (isEditing) {
+              if (isEditing && editMode) {
                 marker.addListener("dragend", () => {
                   const newPosition = marker.getPosition();
                   if (newPosition && onTrailEdit) {
@@ -144,8 +146,8 @@ export function MapView({
 
               markersRef.current.push(marker);
 
-              // Draw route if coordinates exist
-              if (trail.routeCoordinates?.length) {
+              // Draw route if coordinates exist and we're on the trail details page
+              if (editMode && trail.routeCoordinates?.length) {
                 const path = trail.routeCoordinates.map(coord => {
                   const [lat, lng] = coord.split(",").map(Number);
                   return { lat, lng };
@@ -185,7 +187,7 @@ export function MapView({
         }
 
         // Set up drawing manager for edit mode
-        if (isAdmin) {
+        if (isAdmin && editMode) {
           drawingManagerRef.current = new google.maps.drawing.DrawingManager({
             drawingMode: null,
             drawingControl: isEditing,
@@ -251,7 +253,7 @@ export function MapView({
         drawingManagerRef.current.setMap(null);
       }
     };
-  }, [trails, centered, isEditing, onTrailClick, onTrailEdit, onRouteEdit]);
+  }, [trails, centered, isEditing, onTrailClick, onTrailEdit, onRouteEdit, editMode]);
 
   const updateRouteCoordinates = (polyline: google.maps.Polyline) => {
     if (!onRouteEdit) return;
@@ -265,12 +267,14 @@ export function MapView({
 
   return (
     <div className={`relative w-full transition-all duration-300 ${isExpanded ? 'h-screen fixed inset-0 z-50 bg-background' : 'h-full'}`}>
-      <input
-        ref={searchInputRef}
-        type="text"
-        placeholder="Search locations..."
-        className="absolute top-4 left-4 z-10 w-64 px-3 py-2 bg-white rounded-md shadow-sm border border-input"
-      />
+      {editMode && (
+        <input
+          ref={searchInputRef}
+          type="text"
+          placeholder="Search locations..."
+          className="absolute top-4 left-4 z-10 w-64 px-3 py-2 bg-white rounded-md shadow-sm border border-input"
+        />
+      )}
       <div
         ref={mapRef}
         className="w-full h-full rounded-lg border border-border shadow-sm"
@@ -295,7 +299,7 @@ export function MapView({
           )}
         </Button>
 
-        {isAdmin && (
+        {isAdmin && editMode && (
           <Button
             variant={isEditing ? "destructive" : "secondary"}
             size="sm"

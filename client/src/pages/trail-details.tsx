@@ -459,6 +459,7 @@ export default function TrailDetails() {
               centered
               onTrailEdit={handleTrailEdit}
               onRouteEdit={handleRouteEdit}
+              editMode={true}
             />
           </div>
         </div>
