@@ -20,6 +20,7 @@ export const trails = pgTable("trails", {
   duration: text("duration").notNull(),
   location: text("location").notNull(),
   coordinates: text("coordinates").notNull(),
+  routeCoordinates: text("route_coordinates").array(),  // Array of coordinates for the trail route
   imageUrl: text("image_url"),
   aiSummary: text("ai_summary"),
   bestSeason: text("best_season"),
