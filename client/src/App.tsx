@@ -11,6 +11,36 @@ import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
+import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "./components/error-boundary";
+
+// Loading fallback component
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-border" />
+    </div>
+  );
+}
+
+// Error fallback component
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="p-4 text-center">
+        <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -28,20 +58,17 @@ function Router() {
   );
 }
 
-function App() {
-  try {
-    return (
+export default function App() {
+  return (
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Router />
-          <Toaster />
-        </AuthProvider>
+        <Suspense fallback={<LoadingSpinner />}>
+          <AuthProvider>
+            <Router />
+            <Toaster />
+          </AuthProvider>
+        </Suspense>
       </QueryClientProvider>
-    );
-  } catch (error) {
-    console.error('App initialization error:', error);
-    return <div>Something went wrong. Please refresh the page.</div>;
-  }
+    </ErrorBoundary>
+  );
 }
-
-export default App;

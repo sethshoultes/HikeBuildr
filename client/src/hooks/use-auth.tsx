@@ -19,7 +19,7 @@ type AuthContextType = {
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
@@ -44,16 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      // Update user data in cache
       queryClient.setQueryData(["/api/user"], user);
-
-      // Prefetch favorites for profile page
-      queryClient.prefetchQuery({
-        queryKey: ["/api/user/favorites"],
-        queryFn: getQueryFn({ on401: "throw" }),
-        staleTime: 30 * 1000, // Consider favorites fresh for 30 seconds
-      });
-
       toast({
         title: "Welcome back!",
         description: `Logged in as ${user.username}`,
@@ -69,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
+    mutationFn: async (userData: InsertUser) => {
+      const res = await apiRequest("POST", "/api/register", userData);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Registration failed");
@@ -101,9 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      // Clear all query cache to ensure clean state
       queryClient.clear();
-
       toast({
         title: "Goodbye!",
         description: "Logged out successfully",
@@ -118,17 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const value: AuthContextType = {
+    user: user ?? null,
+    isLoading,
+    error,
+    loginMutation,
+    logoutMutation,
+    registerMutation,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user: user ?? null,
-        isLoading,
-        error,
-        loginMutation,
-        logoutMutation,
-        registerMutation,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -136,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
