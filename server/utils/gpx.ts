@@ -1,4 +1,3 @@
-import Parser from "gpxparser";
 import { create } from "xmlbuilder2";
 
 interface GpxPoint {
@@ -12,75 +11,50 @@ export function parseGpxFile(gpxContent: string): {
   name?: string,
   description?: string
 } {
-  const gpx = new Parser();
-
   try {
     console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
-    gpx.parse(gpxContent);
 
-    let coordinates = "";
-    let pathCoordinates = "";
-    let name = "";
-    let description = "";
+    // Parse XML directly instead of using gpxparser
+    const doc = create(gpxContent);
+    const gpx = doc.root();
 
-    // Extract metadata if available
-    if (gpx.metadata) {
-      name = gpx.metadata.name || "";
-      description = gpx.metadata.desc || "";
+    // Extract waypoints
+    const waypoints = gpx.find('//wpt');
+    console.log("Found waypoints:", waypoints.length);
+
+    if (!waypoints.length) {
+      throw new Error("No waypoints found in GPX file");
     }
 
-    // Try to get coordinates from waypoints first
-    if (gpx.waypoints && gpx.waypoints.length > 0) {
-      console.log("Found waypoints:", gpx.waypoints.length);
-      // Use first waypoint as main coordinate
-      coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
-      // Use all waypoints for the path
-      pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
-
-      // If first waypoint has a name/description, use it for the trail
-      if (gpx.waypoints[0].name) name = gpx.waypoints[0].name;
-      if (gpx.waypoints[0].desc) description = gpx.waypoints[0].desc;
-    }
-    // If no waypoints found, try tracks
-    else if (gpx.tracks.length > 0) {
-      console.log("Found tracks:", gpx.tracks.length);
-      const track = gpx.tracks[0];
-      if (track.name) name = track.name;
-      if (track.desc) description = track.desc;
-
-      const points = track.points;
-      if (points.length > 0) {
-        coordinates = `${points[0].lat},${points[0].lon}`;
-        pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
+    // Extract coordinates from waypoints
+    const coordinates = waypoints.map(wpt => {
+      const lat = wpt.attr('lat')?.value;
+      const lon = wpt.attr('lon')?.value;
+      if (!lat || !lon) {
+        throw new Error("Invalid waypoint coordinates");
       }
-    }
-    // If no tracks found, try routes
-    else if (gpx.routes.length > 0) {
-      console.log("Found routes:", gpx.routes.length);
-      const route = gpx.routes[0];
-      if (route.name) name = route.name;
-      if (route.desc) description = route.desc;
+      return { lat, lon };
+    });
 
-      const points = route.points;
-      if (points.length > 0) {
-        coordinates = `${points[0].lat},${points[0].lon}`;
-        pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
-      }
-    }
+    // Use first waypoint as main coordinate
+    const mainCoords = `${coordinates[0].lat},${coordinates[0].lon}`;
 
-    // Validate the parsed data
-    if (!coordinates || !pathCoordinates) {
-      console.error("No valid coordinates found in GPX data");
-      console.log("Waypoints:", gpx.waypoints);
-      console.log("Tracks:", gpx.tracks);
-      console.log("Routes:", gpx.routes);
-      throw new Error("No valid coordinates found in GPX file");
-    }
+    // Use all waypoints as path
+    const pathCoords = coordinates.map(c => `${c.lat},${c.lon}`).join(';');
 
-    console.log("Successfully parsed coordinates:", coordinates);
-    console.log("Path coordinates count:", pathCoordinates.split(';').length);
+    // Try to get name and description from metadata
+    const name = gpx.find('//metadata/name')?.first()?.value || 
+                gpx.find('//name')?.first()?.value || '';
 
-    return { coordinates, pathCoordinates, name, description };
+    const description = gpx.find('//metadata/desc')?.first()?.value || 
+                       gpx.find('//desc')?.first()?.value || '';
+
+    return {
+      coordinates: mainCoords,
+      pathCoordinates: pathCoords,
+      name: name || undefined,
+      description: description || undefined
+    };
   } catch (error) {
     console.error("GPX parsing error:", error);
     throw error;
