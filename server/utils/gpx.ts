@@ -27,11 +27,15 @@ export function parseGpxFile(gpxContent: string): {
   }
 
   // Try to get coordinates from waypoints first
-  if (gpx.waypoints.length > 0) {
+  if (gpx.waypoints && gpx.waypoints.length > 0) {
     // Use first waypoint as main coordinate
     coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
     // Use all waypoints for the path
     pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
+
+    // If first waypoint has a name/description, use it for the trail
+    if (gpx.waypoints[0].name) name = gpx.waypoints[0].name;
+    if (gpx.waypoints[0].desc) description = gpx.waypoints[0].desc;
   }
   // If no waypoints found, try tracks
   else if (gpx.tracks.length > 0) {
@@ -106,7 +110,9 @@ export function generateGpxFile(
         wpt.ele('ele').txt(elevation);
       }
       wpt.ele('name').txt(`WPT${index + 1}`);
+      wpt.ele('desc').txt(`Waypoint ${index + 1}`);
       wpt.ele('sym').txt('Waypoint');
+      wpt.ele('type').txt('Waypoint');
     });
   }
 
