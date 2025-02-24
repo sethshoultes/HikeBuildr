@@ -327,26 +327,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const prompt = `Generate 3 different hiking trail suggestions for ${location}. For each trail include:
-        - A suitable name for the trail
-        - Trail description
-        - Approximate distance
-        - Estimated duration
-        - Difficulty level (Easy, Moderate, or Strenuous)
-        - Elevation gain
-        - Best season to visit
-        - Parking information
-        - Starting point coordinates (in decimal degrees format, e.g. "37.7749,-122.4194" for San Francisco)
+        - A suitable trail name (as 'trail_name')
+        - Trail description (as 'description')
+        - Approximate distance in miles (as 'distance_miles', numeric)
+        - Estimated duration in hours (as 'estimated_duration_hours', numeric)
+        - Difficulty level (as 'difficulty_level', one of: Easy, Moderate, or Strenuous)
+        - Elevation gain in feet (as 'elevation_gain_feet', numeric)
+        - Best season to visit (as 'best_season')
+        - Parking information (as 'parking_info')
+        - Starting point coordinates in decimal degrees format (as 'starting_coordinates', e.g. "37.7749,-122.4194" for San Francisco)
 
         For the coordinates, ensure they are within or very close to ${location}. Use accurate geographic coordinates that would make sense for a real trail in this area.
 
-        Format the response as a JSON array of trail objects, each containing these fields, with coordinates in the format "latitude,longitude".`;
+        Format the response as a JSON array of trail objects with these exact field names.`;
 
       let suggestions = [];
 
       if (enabledProvider.provider === "openai") {
         const openai = new OpenAI({ apiKey: enabledProvider.apiKey });
         const response = await openai.chat.completions.create({
-          model: enabledProvider.model || "gpt-4o",
+          model: enabledProvider.model || "gpt-4",
           messages: [{ role: "user", content: prompt }],
           temperature: parseFloat(enabledProvider.temperature) || 0.7,
           response_format: { type: "json_object" },
