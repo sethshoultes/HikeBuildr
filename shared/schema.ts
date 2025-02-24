@@ -1,8 +1,8 @@
-import { pgTable, text, serial, integer, timestamp, boolean, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Keep existing tables but modify users
+// Keep existing tables
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -11,21 +11,12 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   bio: text("bio"),
   role: text("role").notNull().default("user"),
+  favorites: text("favorites").array().default([]),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Add new favorites join table
-export const favorites = pgTable("favorites", {
-  userId: integer("user_id").references(() => users.id).notNull(),
-  trailId: integer("trail_id").references(() => trails.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (t) => ({
-  pk: primaryKey(t.userId, t.trailId),
-}));
-
-// Keep trails table the same
 export const trails = pgTable("trails", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -45,13 +36,13 @@ export const trails = pgTable("trails", {
   lastUpdatedById: integer("last_updated_by_id").references(() => users.id),
 });
 
-// Keep API settings table
+// New table for API settings
 export const apiSettings = pgTable("api_settings", {
   id: serial("id").primaryKey(),
-  provider: text("provider").notNull(),
+  provider: text("provider").notNull(), // 'openai' or 'gemini'
   isEnabled: boolean("is_enabled").notNull().default(false),
   apiKey: text("api_key"),
-  model: text("model"),
+  model: text("model"), // e.g., 'gpt-4', 'gemini-pro'
   temperature: text("temperature"),
   maxTokens: integer("max_tokens"),
   lastValidated: timestamp("last_validated"),
@@ -59,7 +50,7 @@ export const apiSettings = pgTable("api_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Keep existing schemas
+// Existing schemas
 export const insertUserSchema = createInsertSchema(users).extend({
   role: z.enum(["user", "guide", "admin"]).default("user"),
   email: z.string().email().optional(),
@@ -83,10 +74,12 @@ export const updateUserProfileSchema = z.object({
 });
 
 export const insertTrailSchema = createInsertSchema(trails);
+
+// New schema for API settings
 export const apiSettingSchema = createInsertSchema(apiSettings).extend({
   provider: z.enum(["openai", "gemini"]),
   model: z.string().min(1),
-  temperature: z.string().regex(/^0(\.\d+)?$|^1(\.0+)?$/),
+  temperature: z.string().regex(/^0(\.\d+)?$|^1(\.0+)?$/), // Between 0 and 1
   maxTokens: z.number().min(1).max(32000),
 });
 
