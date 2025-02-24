@@ -1,4 +1,4 @@
-import { users, trails, type User, type Trail, type InsertUser, type UpdateUserProfile } from "@shared/schema";
+import { users, trails, apiSettings, type User, type Trail, type ApiSetting, type InsertUser, type UpdateUserProfile } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -23,6 +23,10 @@ export interface IStorage {
   createTrail(trail: Omit<Trail, "id">): Promise<Trail>;
   updateTrail(id: number, trail: Partial<Trail>): Promise<Trail | undefined>;
   deleteTrail(id: number): Promise<void>;
+
+  getApiSettings(): Promise<ApiSetting[]>;
+  getApiSettingByProvider(provider: string): Promise<ApiSetting | undefined>;
+  updateApiSetting(id: number, setting: Partial<ApiSetting>): Promise<ApiSetting | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -37,10 +41,10 @@ export class DatabaseStorage implements IStorage {
         pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
       });
 
-      // Initialize sample data
       Promise.all([
         this.initializeSampleTrails(),
-        this.initializeAdminUser()
+        this.initializeAdminUser(),
+        this.initializeApiSettings(),
       ]).catch(console.error);
     } catch (error) {
       console.error('Failed to initialize session store:', error);
@@ -136,13 +140,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  private async initializeApiSettings() {
+    const settings = await this.getApiSettings();
+    if (settings.length === 0) {
+      await db.insert(apiSettings).values([
+        {
+          provider: 'openai',
+          isEnabled: false,
+          model: 'gpt-4o',
+          temperature: '0.7',
+          maxTokens: 2000,
+        },
+        {
+          provider: 'gemini',
+          isEnabled: false,
+          model: 'gemini-pro',
+          temperature: '0.7',
+          maxTokens: 2000,
+        },
+      ]);
+    }
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    // Only select the required fields that we know exist
     const [user] = await db
       .select({
         id: users.id,
@@ -165,7 +190,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: number, profile: UpdateUserProfile): Promise<User | undefined> {
-    // Get current user to verify password if changing
     if (profile.newPassword) {
       const currentUser = await this.getUser(id);
       if (!currentUser || !(await comparePasswords(profile.currentPassword!, currentUser.password))) {
@@ -173,7 +197,6 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Prepare update data
     const updateData: Partial<User> = {
       email: profile.email,
       fullName: profile.fullName,
@@ -181,7 +204,6 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     };
 
-    // If changing password, hash the new one
     if (profile.newPassword) {
       updateData.password = await hashPassword(profile.newPassword);
     }
@@ -269,6 +291,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrail(id: number): Promise<void> {
     await db.delete(trails).where(eq(trails.id, id));
+  }
+
+  async getApiSettings(): Promise<ApiSetting[]> {
+    return await db.select().from(apiSettings);
+  }
+
+  async getApiSettingByProvider(provider: string): Promise<ApiSetting | undefined> {
+    const [setting] = await db
+      .select()
+      .from(apiSettings)
+      .where(eq(apiSettings.provider, provider));
+    return setting;
+  }
+
+  async updateApiSetting(id: number, setting: Partial<ApiSetting>): Promise<ApiSetting | undefined> {
+    const [updatedSetting] = await db
+      .update(apiSettings)
+      .set({
+        ...setting,
+        updatedAt: new Date(),
+      })
+      .where(eq(apiSettings.id, id))
+      .returning();
+    return updatedSetting;
   }
 }
 
