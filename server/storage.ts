@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
+import { hashPassword } from "./utils/password";
 
 const PostgresStore = connectPgSimple(session);
 
@@ -28,16 +29,23 @@ export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresStore({
-      pool,
-      createTableIfMissing: true,
-      tableName: 'user_sessions'
-    });
+    try {
+      this.sessionStore = new PostgresStore({
+        pool,
+        createTableIfMissing: true,
+        tableName: 'user_sessions',
+        pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
+      });
 
-    Promise.all([
-      this.initializeSampleTrails(),
-      this.initializeAdminUser()
-    ]).catch(console.error);
+      // Initialize sample data
+      Promise.all([
+        this.initializeSampleTrails(),
+        this.initializeAdminUser()
+      ]).catch(console.error);
+    } catch (error) {
+      console.error('Failed to initialize session store:', error);
+      throw new Error('Session store initialization failed');
+    }
   }
 
   private async initializeSampleTrails() {

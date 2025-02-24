@@ -23,14 +23,18 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    name: 'connect.sid',
+    name: 'sid', // Change cookie name for security
+    proxy: true, // Required for secure cookies with proxies
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      sameSite: 'lax', // Protect against CSRF
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/',
     }
   };
 
+  app.set('trust proxy', 1);
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
@@ -100,7 +104,11 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
         // Return user without password
         const { password, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
+        // Save session before sending response
+        req.session.save((err) => {
+          if (err) return next(err);
+          res.json(userWithoutPassword);
+        });
       });
     })(req, res, next);
   });
@@ -141,54 +149,10 @@ export function setupAuth(app: Express) {
       // Return user without password
       const { password, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
-    } catch (error) {
+    } catch (error: any) {
       if (error.message === "Current password is incorrect") {
         return res.status(400).json({ message: error.message });
       }
-      next(error);
-    }
-  });
-
-  // Get user favorites
-  app.get("/api/user/favorites", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const favorites = await storage.getUserFavorites(req.user.id);
-      res.json(favorites);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Add trail to favorites
-  app.post("/api/user/favorites/:trailId", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const trailId = parseInt(req.params.trailId);
-      await storage.addFavoriteTrail(req.user.id, trailId);
-      res.sendStatus(200);
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Remove trail from favorites
-  app.delete("/api/user/favorites/:trailId", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const trailId = parseInt(req.params.trailId);
-      await storage.removeFavoriteTrail(req.user.id, trailId);
-      res.sendStatus(200);
-    } catch (error) {
       next(error);
     }
   });
