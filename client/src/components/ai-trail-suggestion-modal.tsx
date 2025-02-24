@@ -14,15 +14,15 @@ interface AITrailSuggestionModalProps {
 }
 
 interface TrailSuggestion {
-  trail_name?: string;
-  description?: string;
-  distance_miles?: number;
-  estimated_duration_hours?: number;
-  difficulty_level?: string;
-  elevation_gain_feet?: number;
-  best_season?: string;
-  parking_info?: string;
-  starting_coordinates?: string;
+  trail_name: string;
+  description: string;
+  distance_miles: number;
+  estimated_duration_hours: number;
+  difficulty_level: string;
+  elevation_gain_feet: number;
+  best_season: string;
+  parking_info: string;
+  starting_coordinates: string;
 }
 
 export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionModalProps) {
@@ -66,19 +66,17 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
   };
 
   const handleSelectSuggestion = (suggestion: TrailSuggestion) => {
-    // Get current form values
     const formattedSuggestion: Partial<Trail> = {
-      name: suggestion.trail_name || '',
-      description: suggestion.description || '',
-      difficulty: suggestion.difficulty_level || 'Easy',
-      distance: suggestion.distance_miles ? `${suggestion.distance_miles} miles` : '',
-      elevation: suggestion.elevation_gain_feet ? `${suggestion.elevation_gain_feet} feet` : '',
-      duration: suggestion.estimated_duration_hours ? `${suggestion.estimated_duration_hours} hours` : '',
+      name: suggestion.trail_name,
+      description: suggestion.description,
+      difficulty: suggestion.difficulty_level,
+      distance: `${suggestion.distance_miles} miles`,
+      elevation: `${suggestion.elevation_gain_feet} feet`,
+      duration: `${suggestion.estimated_duration_hours} hours`,
       location: location,
-      bestSeason: suggestion.best_season || '',
-      parkingInfo: suggestion.parking_info || '',
-      // Map starting_coordinates directly to coordinates field
-      coordinates: suggestion.starting_coordinates || '',
+      bestSeason: suggestion.best_season,
+      parkingInfo: suggestion.parking_info,
+      coordinates: suggestion.starting_coordinates,
     };
 
     onSuggestionApply(formattedSuggestion);
@@ -158,12 +156,10 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
                           <strong>Description:</strong>{" "}
                           {suggestion.description}
                         </p>
-                        {suggestion.starting_coordinates && (
-                          <p>
-                            <strong>Starting Point:</strong>{" "}
-                            {suggestion.starting_coordinates}
-                          </p>
-                        )}
+                        <p>
+                          <strong>Starting Point:</strong>{" "}
+                          {suggestion.starting_coordinates}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
