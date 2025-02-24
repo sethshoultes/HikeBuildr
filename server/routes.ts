@@ -111,6 +111,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // API Settings management
+  app.get("/api/admin/settings", requireRole(["admin"]), async (_req, res) => {
+    try {
+      const settings = await storage.getApiSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching API settings:', error);
+      res.status(500).json({ message: "Failed to fetch API settings" });
+    }
+  });
+
+  app.patch("/api/admin/settings/:id", requireRole(["admin"]), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid setting ID" });
+      }
+
+      const setting = await storage.updateApiSetting(id, {
+        ...req.body,
+        lastUpdatedById: req.user.id,
+      });
+
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+
+      res.json(setting);
+    } catch (error) {
+      console.error('Error updating API setting:', error);
+      res.status(500).json({ message: "Failed to update API setting" });
+    }
+  });
+
+  app.post("/api/admin/settings/validate/:provider", requireRole(["admin"]), async (req, res) => {
+    try {
+      const { provider } = req.params;
+      const setting = await storage.getApiSettingByProvider(provider);
+
+      if (!setting) {
+        return res.status(404).json({ message: "API setting not found" });
+      }
+
+      let isValid = false;
+      let message = "";
+
+      if (provider === "openai") {
+        try {
+          const OpenAI = require('openai');
+          const openai = new OpenAI({ apiKey: setting.apiKey });
+          const response = await openai.chat.completions.create({
+            model: setting.model || "gpt-4o",
+            messages: [{ role: "user", content: "Test connection" }],
+            max_tokens: 5
+          });
+          isValid = !!response;
+          message = "OpenAI API connection successful";
+        } catch (error: any) {
+          message = `OpenAI API validation failed: ${error.message}`;
+        }
+      } else if (provider === "gemini") {
+        // Add Gemini API validation here when implemented
+        message = "Gemini API validation not implemented yet";
+      }
+
+      if (isValid) {
+        await storage.updateApiSetting(setting.id, {
+          lastValidated: new Date(),
+          lastUpdatedById: (req as AuthenticatedRequest).user.id,
+        });
+      }
+
+      res.json({
+        success: isValid,
+        message,
+      });
+    } catch (error) {
+      console.error('Error validating API:', error);
+      res.status(500).json({ message: "Failed to validate API" });
+    }
+  });
+
+
   // Trail management routes
   app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
     try {
