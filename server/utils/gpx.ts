@@ -1,4 +1,4 @@
-import { create, builder } from "xmlbuilder2";
+import { create } from "xmlbuilder2";
 
 interface GpxPoint {
   lat: number;
@@ -15,16 +15,16 @@ export function parseGpxFile(gpxContent: string): {
     console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
 
     // Parse XML using the correct method
-    const doc = builder.parseDocument(gpxContent);
+    const doc = create({ version: '1.0' }).doc(gpxContent);
     const waypoints: GpxPoint[] = [];
 
-    // Find all wpt elements
-    const wptElements = doc.documentElement.getElementsByTagName('wpt');
+    // Find all wpt elements using XPath-style query
+    const wptElements = doc.root().descendants().filter(node => node.node.nodeName === 'wpt');
     console.log("Found waypoint elements:", wptElements.length);
 
     for (const wpt of wptElements) {
-      const lat = parseFloat(wpt.getAttribute('lat') || '');
-      const lon = parseFloat(wpt.getAttribute('lon') || '');
+      const lat = parseFloat(wpt.attr('lat') || '');
+      const lon = parseFloat(wpt.attr('lon') || '');
 
       if (!isNaN(lat) && !isNaN(lon)) {
         waypoints.push({ lat, lon });
@@ -36,23 +36,24 @@ export function parseGpxFile(gpxContent: string): {
     }
 
     // Get metadata - first try metadata section, then root level
-    const nameElement = doc.documentElement.getElementsByTagName('metadata')[0]?.getElementsByTagName('name')[0] || 
-                       doc.documentElement.getElementsByTagName('name')[0];
-    const descElement = doc.documentElement.getElementsByTagName('metadata')[0]?.getElementsByTagName('desc')[0] ||
-                       doc.documentElement.getElementsByTagName('desc')[0];
-
-    const name = nameElement?.textContent;
-    const description = descElement?.textContent;
+    const metadata = doc.root().descendants().find(node => node.node.nodeName === 'metadata');
+    const name = metadata?.first('name')?.text() || 
+                doc.root().first('name')?.text();
+    const description = metadata?.first('desc')?.text() || 
+                       doc.root().first('desc')?.text();
 
     // Format coordinates
     const mainCoords = `${waypoints[0].lat},${waypoints[0].lon}`;
     const pathCoords = waypoints.map(p => `${p.lat},${p.lon}`).join(';');
 
+    console.log("Successfully parsed coordinates:", mainCoords);
+    console.log("Path coordinates count:", waypoints.length);
+
     return {
       coordinates: mainCoords,
       pathCoordinates: pathCoords,
-      name,
-      description
+      name: name || undefined,
+      description: description || undefined
     };
   } catch (error) {
     console.error("GPX parsing error:", error);
