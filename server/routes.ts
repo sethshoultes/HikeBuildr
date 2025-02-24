@@ -335,8 +335,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         - Elevation gain
         - Best season to visit
         - Parking information
+        - Starting point coordinates (in decimal degrees format, e.g. "37.7749,-122.4194" for San Francisco)
 
-        Format the response as a JSON array of trail objects, each containing these fields.`;
+        For the coordinates, ensure they are within or very close to ${location}. Use accurate geographic coordinates that would make sense for a real trail in this area.
+
+        Format the response as a JSON array of trail objects, each containing these fields, with coordinates in the format "latitude,longitude".`;
 
       let suggestions = [];
 
