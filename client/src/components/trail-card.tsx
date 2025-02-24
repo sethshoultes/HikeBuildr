@@ -37,7 +37,9 @@ export function TrailCard({ trail }: TrailCardProps) {
           </div>
         </CardContent>
       </Link>
-      <FavoriteButton trailId={trail.id} variant="icon" />
+      <div className="absolute bottom-2 right-2 z-10">
+        <FavoriteButton trailId={trail.id} variant="icon" />
+      </div>
     </Card>
   );
 }
