@@ -1,4 +1,4 @@
-import { create } from "xmlbuilder2";
+import { create, builder } from "xmlbuilder2";
 
 interface GpxPoint {
   lat: number;
@@ -14,38 +14,35 @@ export function parseGpxFile(gpxContent: string): {
   try {
     console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
 
-    // Parse XML
-    const doc = create(gpxContent);
-    const root = doc.root();
-
-    // Get all waypoints
+    // Parse XML using the correct method
+    const doc = builder.parseDocument(gpxContent);
     const waypoints: GpxPoint[] = [];
-    root.each((node) => {
-      if (node.node.nodeName === 'wpt') {
-        const lat = parseFloat(node.attribute('lat')?.value || '');
-        const lon = parseFloat(node.attribute('lon')?.value || '');
 
-        if (!isNaN(lat) && !isNaN(lon)) {
-          waypoints.push({ lat, lon });
-        }
+    // Find all wpt elements
+    const wptElements = doc.documentElement.getElementsByTagName('wpt');
+    console.log("Found waypoint elements:", wptElements.length);
+
+    for (const wpt of wptElements) {
+      const lat = parseFloat(wpt.getAttribute('lat') || '');
+      const lon = parseFloat(wpt.getAttribute('lon') || '');
+
+      if (!isNaN(lat) && !isNaN(lon)) {
+        waypoints.push({ lat, lon });
       }
-    });
+    }
 
     if (waypoints.length === 0) {
       throw new Error("No valid waypoints found in GPX file");
     }
 
-    // Get metadata
-    let name: string | undefined;
-    let description: string | undefined;
+    // Get metadata - first try metadata section, then root level
+    const nameElement = doc.documentElement.getElementsByTagName('metadata')[0]?.getElementsByTagName('name')[0] || 
+                       doc.documentElement.getElementsByTagName('name')[0];
+    const descElement = doc.documentElement.getElementsByTagName('metadata')[0]?.getElementsByTagName('desc')[0] ||
+                       doc.documentElement.getElementsByTagName('desc')[0];
 
-    root.each((node) => {
-      if (node.node.nodeName === 'name') {
-        name = node.value();
-      } else if (node.node.nodeName === 'desc') {
-        description = node.value();
-      }
-    });
+    const name = nameElement?.textContent;
+    const description = descElement?.textContent;
 
     // Format coordinates
     const mainCoords = `${waypoints[0].lat},${waypoints[0].lon}`;
