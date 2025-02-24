@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { updateUserProfileSchema, type UpdateUserProfile } from "@shared/schema";
+import { updateUserProfileSchema, type UpdateUserProfile, type Trail } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   Form,
@@ -57,7 +57,7 @@ export default function ProfilePage() {
     },
   });
 
-  const { data: favorites = [], isLoading: isFavoritesLoading } = useQuery({
+  const { data: favorites = [], isLoading: isFavoritesLoading } = useQuery<Trail[]>({
     queryKey: ["/api/user/favorites"],
   });
 
@@ -190,7 +190,7 @@ export default function ProfilePage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {favorites.map((trail) => (
+                {favorites.map((trail: Trail) => (
                   <div
                     key={trail.id}
                     className="flex items-center justify-between p-4 border rounded-lg"
