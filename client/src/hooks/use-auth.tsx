@@ -44,7 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      // Set user data with infinite stale time to prevent unnecessary refetches
+      // Clear all previous data
+      queryClient.clear();
+
+      // Set user data with infinite stale time to prevent unnecessary refetches  
       queryClient.setQueryData(["/api/user"], user);
 
       // Prefetch favorites with proper query function
