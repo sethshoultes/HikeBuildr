@@ -4,7 +4,6 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
@@ -12,6 +11,29 @@ import {
 import { cn } from "@/lib/utils";
 import { Home, BarChart2, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Custom navigation item component to prevent nested anchors
+const NavItem = ({ href, icon: Icon, children, isActive }: { 
+  href: string;
+  icon: any;
+  children: React.ReactNode;
+  isActive: boolean;
+}) => (
+  <NavigationMenuItem>
+    <Link href={href}>
+      <button
+        className={cn(
+          navigationMenuTriggerStyle(),
+          isActive && "bg-accent",
+          "w-full flex items-center"
+        )}
+      >
+        <Icon className="h-4 w-4 mr-2" />
+        {children}
+      </button>
+    </Link>
+  </NavigationMenuItem>
+);
 
 export function NavHeader() {
   const [location] = useLocation();
@@ -22,59 +44,29 @@ export function NavHeader() {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <NavigationMenu>
           <NavigationMenuList>
-            <NavigationMenuItem>
-              <Link href="/">
-                <NavigationMenuLink
-                  asChild
-                  className={cn(
-                    navigationMenuTriggerStyle(),
-                    location === "/" && "bg-accent"
-                  )}
-                >
-                  <span>
-                    <Home className="h-4 w-4 mr-2" />
-                    Home
-                  </span>
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
+            <NavItem 
+              href="/" 
+              icon={Home} 
+              isActive={location === "/"}>
+              Home
+            </NavItem>
 
             {user && (
-              <NavigationMenuItem>
-                <Link href="/profile">
-                  <NavigationMenuLink
-                    asChild
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      location === "/profile" && "bg-accent"
-                    )}
-                  >
-                    <span>
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </span>
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
+              <NavItem 
+                href="/profile" 
+                icon={User} 
+                isActive={location === "/profile"}>
+                Profile
+              </NavItem>
             )}
 
             {user?.role === "admin" && (
-              <NavigationMenuItem>
-                <Link href="/admin">
-                  <NavigationMenuLink
-                    asChild
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      location === "/admin" && "bg-accent"
-                    )}
-                  >
-                    <span>
-                      <BarChart2 className="h-4 w-4 mr-2" />
-                      Admin Dashboard
-                    </span>
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
+              <NavItem 
+                href="/admin" 
+                icon={BarChart2} 
+                isActive={location === "/admin"}>
+                Admin Dashboard
+              </NavItem>
             )}
           </NavigationMenuList>
         </NavigationMenu>

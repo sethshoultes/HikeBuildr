@@ -17,29 +17,25 @@ export function setupAuth(app: Express) {
     throw new Error("SESSION_SECRET environment variable must be set");
   }
 
+  // Simple, robust session configuration
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    proxy: true, // Trust the reverse proxy
+    name: 'sess', // Simple session name
     cookie: {
-      secure: process.env.NODE_ENV === 'production' ? true : 'auto', //More robust secure setting
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: "/",
+      secure: false, // Allow both HTTP and HTTPS
       httpOnly: true,
-      domain: process.env.REPLIT_DOMAIN ? `.${process.env.REPLIT_DOMAIN}` : undefined //Set domain based on env variable if available
-
-    },
-    name: 'replit_sid', // Explicit cookie name to avoid conflicts
-    rolling: true, // Reset maxAge on every response
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   };
 
-  // Configure trust proxy for Replit's environment
-  app.set("trust proxy", 1);
+  // Basic trust proxy setup
+  app.set("trust proxy", true);
 
-  // Setup session before passport
+  // Session setup
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
