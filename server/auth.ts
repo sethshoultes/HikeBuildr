@@ -26,7 +26,11 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
+      httpOnly: true
     },
+    name: 'sid', // Custom session ID cookie name
+    rolling: true, // Reset maxAge on every response
   };
 
   app.set("trust proxy", 1);

@@ -25,7 +25,13 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+      checkPeriod: 86400000, // Prune expired entries every 24h
+      stale: false, // Don't allow stale data
+      ttl: 24 * 60 * 60 * 1000, // Session TTL (24 hours)
+      dispose: (key) => {
+        console.log(`Session expired and removed: ${key}`);
+      },
+      noDisposeOnSet: true, // Don't dispose old value on set
     });
     Promise.all([
       this.initializeSampleTrails(),
