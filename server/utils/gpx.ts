@@ -1,8 +1,12 @@
 import { create } from "xmlbuilder2";
+import { XMLParser } from 'fast-xml-parser';
 
 interface GpxPoint {
   lat: number;
   lon: number;
+  ele?: number;
+  name?: string;
+  desc?: string;
 }
 
 export function parseGpxFile(gpxContent: string): { 
@@ -12,48 +16,73 @@ export function parseGpxFile(gpxContent: string): {
   description?: string
 } {
   try {
-    console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
+    console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "...");
 
-    // Parse XML using the correct method
-    const doc = create({ version: '1.0' }).doc(gpxContent);
+    // Parse XML with namespace awareness
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+      removeNSPrefix: true
+    });
+
+    const result = parser.parse(gpxContent);
+
+    if (!result.gpx) {
+      throw new Error("Invalid GPX file: Missing root gpx element");
+    }
+
+    // Extract waypoints
     const waypoints: GpxPoint[] = [];
+    if (result.gpx.wpt) {
+      // Handle single waypoint case
+      const wpts = Array.isArray(result.gpx.wpt) ? result.gpx.wpt : [result.gpx.wpt];
 
-    // Find all wpt elements using XPath-style query
-    const wptElements = doc.root().descendants().filter(node => node.node.nodeName === 'wpt');
-    console.log("Found waypoint elements:", wptElements.length);
-
-    for (const wpt of wptElements) {
-      const lat = parseFloat(wpt.attr('lat') || '');
-      const lon = parseFloat(wpt.attr('lon') || '');
-
-      if (!isNaN(lat) && !isNaN(lon)) {
-        waypoints.push({ lat, lon });
-      }
+      wpts.forEach((wpt: any) => {
+        if (wpt['@_lat'] && wpt['@_lon']) {
+          waypoints.push({
+            lat: parseFloat(wpt['@_lat']),
+            lon: parseFloat(wpt['@_lon']),
+            ele: wpt.ele ? parseFloat(wpt.ele) : undefined,
+            name: wpt.name,
+            desc: wpt.desc
+          });
+        }
+      });
     }
 
     if (waypoints.length === 0) {
       throw new Error("No valid waypoints found in GPX file");
     }
 
-    // Get metadata - first try metadata section, then root level
-    const metadata = doc.root().descendants().find(node => node.node.nodeName === 'metadata');
-    const name = metadata?.first('name')?.text() || 
-                doc.root().first('name')?.text();
-    const description = metadata?.first('desc')?.text() || 
-                       doc.root().first('desc')?.text();
+    // Extract metadata
+    let name = undefined;
+    let description = undefined;
+
+    if (result.gpx.metadata) {
+      name = result.gpx.metadata.name;
+      description = result.gpx.metadata.desc;
+    }
+
+    // Use first waypoint name/desc if metadata is not available
+    if (!name && waypoints[0].name) {
+      name = waypoints[0].name;
+    }
+    if (!description && waypoints[0].desc) {
+      description = waypoints[0].desc;
+    }
 
     // Format coordinates
     const mainCoords = `${waypoints[0].lat},${waypoints[0].lon}`;
     const pathCoords = waypoints.map(p => `${p.lat},${p.lon}`).join(';');
 
-    console.log("Successfully parsed coordinates:", mainCoords);
-    console.log("Path coordinates count:", waypoints.length);
+    console.log("Successfully parsed waypoints:", waypoints.length);
+    console.log("Main coordinates:", mainCoords);
 
     return {
       coordinates: mainCoords,
       pathCoordinates: pathCoords,
-      name: name || undefined,
-      description: description || undefined
+      name,
+      description
     };
   } catch (error) {
     console.error("GPX parsing error:", error);
@@ -80,13 +109,15 @@ export function generateGpxFile(
 
   // Add metadata
   const metadata = doc.ele('metadata');
-  metadata.ele('time').txt(new Date().toISOString());
-  metadata.ele('name').txt(trailName);
+  metadata
+    .ele('time').txt(new Date().toISOString()).up()
+    .ele('name').txt(trailName).up();
+
   if (description) {
     metadata.ele('desc').txt(description);
   }
 
-  // Add waypoints for each point in the path
+  // Add waypoints from path coordinates
   if (pathCoordinates) {
     const points = pathCoordinates.split(';').map(coord => {
       const [lat, lon] = coord.split(',').map(Number);
@@ -98,13 +129,15 @@ export function generateGpxFile(
 
     points.forEach((point, index) => {
       const wpt = doc.ele('wpt', { lat: point.lat, lon: point.lon });
+
       if (elevation) {
         wpt.ele('ele').txt(elevation);
       }
-      wpt.ele('name').txt(`WPT${index + 1}`);
-      wpt.ele('desc').txt(`Waypoint ${index + 1}`);
-      wpt.ele('sym').txt('Waypoint');
-      wpt.ele('type').txt('Waypoint');
+
+      wpt
+        .ele('name').txt(`WPT${index + 1}`).up()
+        .ele('desc').txt(`Waypoint ${index + 1}`).up()
+        .ele('sym').txt('Waypoint');
     });
   }
 
