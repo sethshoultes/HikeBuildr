@@ -7,6 +7,7 @@ import { NavHeader } from "@/components/nav-header";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
+import ProfilePage from "@/pages/profile-page";
 import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -18,6 +19,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
+        <ProtectedRoute path="/profile" component={ProfilePage} />
         <Route path="/admin" component={AdminPage} />
         <ProtectedRoute path="/trail/:id" component={TrailDetails} />
         <Route component={NotFound} />

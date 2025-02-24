@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -6,8 +6,14 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
+  fullName: text("full_name"),
+  bio: text("bio"),
   role: text("role").notNull().default("user"),
   favorites: text("favorites").array().default([]),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const trails = pgTable("trails", {
@@ -31,10 +37,31 @@ export const trails = pgTable("trails", {
 
 export const insertUserSchema = createInsertSchema(users).extend({
   role: z.enum(["user", "guide", "admin"]).default("user"),
+  email: z.string().email().optional(),
+  fullName: z.string().min(2).optional(),
+  bio: z.string().max(500).optional(),
+});
+
+// Schema for updating user profile
+export const updateUserProfileSchema = z.object({
+  email: z.string().email().optional(),
+  fullName: z.string().min(2).optional(),
+  bio: z.string().max(500).optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8).optional(),
+}).refine((data) => {
+  // If newPassword is provided, currentPassword must also be provided
+  if (data.newPassword && !data.currentPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Current password is required when changing password",
 });
 
 export const insertTrailSchema = createInsertSchema(trails);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
 export type User = typeof users.$inferSelect;
 export type Trail = typeof trails.$inferSelect;

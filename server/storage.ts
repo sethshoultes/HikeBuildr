@@ -1,9 +1,9 @@
-import { users, trails, type User, type Trail, type InsertUser } from "@shared/schema";
+import { users, trails, type User, type Trail, type InsertUser, type UpdateUserProfile } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { hashPassword } from "./utils/password";
+import { hashPassword, comparePasswords } from "./utils/password";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -11,9 +11,13 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserProfile(id: number, profile: UpdateUserProfile): Promise<User | undefined>;
   getTrails(): Promise<Trail[]>;
   getTrailById(id: number): Promise<Trail | undefined>;
   searchTrails(query: string): Promise<Trail[]>;
+  getUserFavorites(userId: number): Promise<Trail[]>;
+  addFavoriteTrail(userId: number, trailId: number): Promise<void>;
+  removeFavoriteTrail(userId: number, trailId: number): Promise<void>;
   sessionStore: session.Store;
   createTrail(trail: Omit<Trail, "id">): Promise<Trail>;
   updateTrail(id: number, trail: Partial<Trail>): Promise<Trail | undefined>;
@@ -143,6 +147,75 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async updateUserProfile(id: number, profile: UpdateUserProfile): Promise<User | undefined> {
+    // Get current user to verify password if changing
+    if (profile.newPassword) {
+      const currentUser = await this.getUser(id);
+      if (!currentUser || !(await comparePasswords(profile.currentPassword!, currentUser.password))) {
+        throw new Error("Current password is incorrect");
+      }
+    }
+
+    // Prepare update data
+    const updateData: Partial<User> = {
+      email: profile.email,
+      fullName: profile.fullName,
+      bio: profile.bio,
+      updatedAt: new Date(),
+    };
+
+    // If changing password, hash the new one
+    if (profile.newPassword) {
+      updateData.password = await hashPassword(profile.newPassword);
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+
+    return updatedUser;
+  }
+
+  async getUserFavorites(userId: number): Promise<Trail[]> {
+    const user = await this.getUser(userId);
+    if (!user || !user.favorites) return [];
+
+    const favoriteIds = user.favorites;
+    const favoriteTrails = await Promise.all(
+      favoriteIds.map(id => this.getTrailById(parseInt(id)))
+    );
+
+    return favoriteTrails.filter((trail): trail is Trail => trail !== undefined);
+  }
+
+  async addFavoriteTrail(userId: number, trailId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const favorites = new Set(user.favorites || []);
+    favorites.add(trailId.toString());
+
+    await db
+      .update(users)
+      .set({ favorites: Array.from(favorites) })
+      .where(eq(users.id, userId));
+  }
+
+  async removeFavoriteTrail(userId: number, trailId: number): Promise<void> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const favorites = new Set(user.favorites || []);
+    favorites.delete(trailId.toString());
+
+    await db
+      .update(users)
+      .set({ favorites: Array.from(favorites) })
+      .where(eq(users.id, userId));
   }
 
   async getTrails(): Promise<Trail[]> {
