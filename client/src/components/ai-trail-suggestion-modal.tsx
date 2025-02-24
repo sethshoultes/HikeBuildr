@@ -66,6 +66,7 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
   };
 
   const handleSelectSuggestion = (suggestion: TrailSuggestion) => {
+    // Get current form values
     const formattedSuggestion: Partial<Trail> = {
       name: suggestion.trail_name || '',
       description: suggestion.description || '',
@@ -76,6 +77,7 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
       location: location,
       bestSeason: suggestion.best_season || '',
       parkingInfo: suggestion.parking_info || '',
+      // Map starting_coordinates directly to coordinates field
       coordinates: suggestion.starting_coordinates || '',
     };
 
