@@ -61,9 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           path,
           status: res.statusCode,
           duration,
-          response: capturedJsonResponse
-            ? JSON.stringify(capturedJsonResponse)
-            : undefined,
+          response: capturedJsonResponse ? JSON.stringify(capturedJsonResponse) : undefined,
         });
 
         // Keep only last 1000 logs
@@ -77,27 +75,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Error logging middleware
-  app.use(
-    (
-      err: Error,
-      req: Request,
-      res: Express.Response,
-      next: Express.NextFunction,
-    ) => {
-      errorLogs.unshift({
-        timestamp: new Date().toISOString(),
-        error: err.message,
-        stack: err.stack,
-      });
+  app.use((err: Error, req: Request, res: Express.Response, next: Express.NextFunction) => {
+    errorLogs.unshift({
+      timestamp: new Date().toISOString(),
+      error: err.message,
+      stack: err.stack,
+    });
 
-      // Keep only last 1000 error logs
-      if (errorLogs.length > 1000) {
-        errorLogs.pop();
-      }
+    // Keep only last 1000 error logs
+    if (errorLogs.length > 1000) {
+      errorLogs.pop();
+    }
 
-      next(err);
-    },
-  );
+    next(err);
+  });
 
   // Admin routes with role-based protection
   app.get("/api/admin/logs", requireRole(["admin"]), (_req, res) => {
@@ -128,145 +119,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await storage.getApiSettings();
       res.json(settings);
     } catch (error) {
-      console.error("Error fetching API settings:", error);
+      console.error('Error fetching API settings:', error);
       res.status(500).json({ message: "Failed to fetch API settings" });
     }
   });
 
-  app.patch(
-    "/api/admin/settings/:id",
-    requireRole(["admin"]),
-    async (req: AuthenticatedRequest, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-          return res.status(400).json({ message: "Invalid setting ID" });
-        }
-
-        const setting = await storage.updateApiSetting(id, {
-          ...req.body,
-          lastUpdatedById: req.user.id,
-        });
-
-        if (!setting) {
-          return res.status(404).json({ message: "Setting not found" });
-        }
-
-        res.json(setting);
-      } catch (error) {
-        console.error("Error updating API setting:", error);
-        res.status(500).json({ message: "Failed to update API setting" });
+  app.patch("/api/admin/settings/:id", requireRole(["admin"]), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid setting ID" });
       }
-    },
-  );
 
-  app.post(
-    "/api/admin/settings/validate/:provider",
-    requireRole(["admin"]),
-    async (req, res) => {
-      try {
-        const { provider } = req.params;
-        const setting = await storage.getApiSettingByProvider(provider);
+      const setting = await storage.updateApiSetting(id, {
+        ...req.body,
+        lastUpdatedById: req.user.id,
+      });
 
-        if (!setting) {
-          return res.status(404).json({ message: "API setting not found" });
-        }
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
 
-        let isValid = false;
-        let message = "";
+      res.json(setting);
+    } catch (error) {
+      console.error('Error updating API setting:', error);
+      res.status(500).json({ message: "Failed to update API setting" });
+    }
+  });
 
-        if (provider === "openai") {
-          try {
-            const openai = new OpenAI({ apiKey: setting.apiKey });
-            const response = await openai.chat.completions.create({
-              model: setting.model || "gpt-4",
-              messages: [{ role: "user", content: "Test connection" }],
-              max_tokens: 5,
-            });
-            isValid = !!response;
-            message = "OpenAI API connection successful";
-          } catch (error: any) {
-            message = `OpenAI API validation failed: ${error.message}`;
-          }
-        } else if (provider === "gemini") {
-          try {
-            const genAI = new GoogleGenerativeAI(setting.apiKey || "");
-            const model = genAI.getGenerativeModel({
-              model: setting.model || "gemini-pro",
-            });
+  app.post("/api/admin/settings/validate/:provider", requireRole(["admin"]), async (req, res) => {
+    try {
+      const { provider } = req.params;
+      const setting = await storage.getApiSettingByProvider(provider);
 
-            const result = await model.generateContent("Test connection");
-            const response = await result.response;
-            isValid = !!response;
-            message = "Gemini API connection successful";
-          } catch (error: any) {
-            message = `Gemini API validation failed: ${error.message}`;
-          }
-        }
+      if (!setting) {
+        return res.status(404).json({ message: "API setting not found" });
+      }
 
-        if (isValid) {
-          await storage.updateApiSetting(setting.id, {
-            lastValidated: new Date(),
-            lastUpdatedById: (req as AuthenticatedRequest).user.id,
+      let isValid = false;
+      let message = "";
+
+      if (provider === "openai") {
+        try {
+          const openai = new OpenAI({ apiKey: setting.apiKey });
+          const response = await openai.chat.completions.create({
+            model: setting.model || "gpt-4",
+            messages: [{ role: "user", content: "Test connection" }],
+            max_tokens: 5
           });
+          isValid = !!response;
+          message = "OpenAI API connection successful";
+        } catch (error: any) {
+          message = `OpenAI API validation failed: ${error.message}`;
         }
+      } else if (provider === "gemini") {
+        try {
+          const genAI = new GoogleGenerativeAI(setting.apiKey || '');
+          const model = genAI.getGenerativeModel({ model: setting.model || "gemini-pro" });
 
-        res.json({
-          success: isValid,
-          message,
-        });
-      } catch (error: any) {
-        console.error("Error validating API:", error);
-        res.status(500).json({ message: "Failed to validate API" });
+          const result = await model.generateContent("Test connection");
+          const response = await result.response;
+          isValid = !!response;
+          message = "Gemini API connection successful";
+        } catch (error: any) {
+          message = `Gemini API validation failed: ${error.message}`;
+        }
       }
-    },
-  );
+
+      if (isValid) {
+        await storage.updateApiSetting(setting.id, {
+          lastValidated: new Date(),
+          lastUpdatedById: (req as AuthenticatedRequest).user.id,
+        });
+      }
+
+      res.json({
+        success: isValid,
+        message,
+      });
+    } catch (error: any) {
+      console.error('Error validating API:', error);
+      res.status(500).json({ message: "Failed to validate API" });
+    }
+  });
+
 
   // Trail management routes
-  app.post(
-    "/api/trails",
-    requireRole(["admin", "guide"]),
-    async (req: AuthenticatedRequest, res) => {
-      try {
-        const validatedData = insertTrailSchema.parse({
-          ...req.body,
-          createdById: req.user.id,
-          lastUpdatedById: req.user.id,
-        });
+  app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
+    try {
+      const validatedData = insertTrailSchema.parse({
+        ...req.body,
+        createdById: req.user.id,
+        lastUpdatedById: req.user.id,
+      });
 
-        const trail = await storage.createTrail(validatedData);
-        res.status(201).json(trail);
-      } catch (error) {
-        res.status(400).json({ message: error.message });
+      const trail = await storage.createTrail(validatedData);
+      res.status(201).json(trail);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/trails/:id", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
       }
-    },
-  );
 
-  app.patch(
-    "/api/trails/:id",
-    requireRole(["admin", "guide"]),
-    async (req: AuthenticatedRequest, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-          return res.status(400).json({ message: "Invalid trail ID" });
-        }
+      const validatedData = insertTrailSchema.partial().parse({
+        ...req.body,
+        lastUpdatedById: req.user.id,
+      });
 
-        const validatedData = insertTrailSchema.partial().parse({
-          ...req.body,
-          lastUpdatedById: req.user.id,
-        });
-
-        const trail = await storage.updateTrail(id, validatedData);
-        if (!trail) {
-          return res.status(404).json({ message: "Trail not found" });
-        }
-        res.json(trail);
-      } catch (error) {
-        res.status(400).json({ message: error.message });
+      const trail = await storage.updateTrail(id, validatedData);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
       }
-    },
-  );
+      res.json(trail);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  });
 
   app.delete("/api/trails/:id", requireRole(["admin"]), async (req, res) => {
     const id = parseInt(req.params.id);
@@ -346,54 +320,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the enabled AI provider settings
       const providers = await storage.getApiSettings();
-      const enabledProvider = providers.find((p) => p.isEnabled);
+      const enabledProvider = providers.find(p => p.isEnabled);
 
       if (!enabledProvider) {
-        return res
-          .status(400)
-          .json({ message: "No AI provider is configured and enabled" });
+        return res.status(400).json({ message: "No AI provider is configured and enabled" });
       }
 
-      const prompt = `Generate three different hiking trail suggestions for ${location}. Each trail should include the following details:
+      const prompt = `Generate 3 different hiking trail suggestions for ${location}. For each trail include:
+        - A suitable name for the trail
+        - Trail description
+        - Approximate distance
+        - Estimated duration
+        - Difficulty level (Easy, Moderate, or Strenuous)
+        - Elevation gain
+        - Best season to visit
+        - Parking information
+        - Starting point coordinates (in decimal degrees format, e.g. "37.7749,-122.4194" for San Francisco)
 
-Trail Name: A suitable and engaging name for the trail.
-Description: A brief but informative overview of the trail, highlighting key features, terrain, and scenery.
-Distance (miles/km): The approximate length of the trail.
-Estimated Duration: The typical time required to complete the hike.
-Difficulty Level: Categorize as Easy, Moderate, or Strenuous based on elevation gain, terrain, and required fitness level.
-Elevation Gain: The total elevation gain along the trail.
-Best Season to Visit: The most suitable time of year for hiking this trail (e.g., Spring, Summer, Fall).
-Parking Information: Availability of parking at or near the trailhead, including any fees if applicable.
-Starting Point Coordinates: Provide accurate geographic coordinates in decimal degrees format (latitude,longitude), ensuring they are within or very close to ${location}. These should correspond to a real-world trailhead in the area.
-Response Format:
-Return the response as a JSON array of trail objects, each containing these fields. The coordinates must be formatted as "latitude,longitude", ensuring they are valid and geographically accurate.
+        For the coordinates, ensure they are within or very close to ${location}. Use accurate geographic coordinates that would make sense for a real trail in this area.
 
-Example JSON Output:
-[
-  {
-    "trail_name": "Sunset Ridge Trail",
-    "description": "A scenic trail with panoramic mountain views, passing through dense forest and rocky outcrops.",
-    "distance_miles": 5.2,
-    "estimated_duration_hours": 3,
-    "difficulty_level": "Moderate",
-    "elevation_gain_feet": 1200,
-    "best_season": "Spring and Fall",
-    "parking_info": "Parking lot available at the trailhead, free of charge.",
-    "starting_coordinates": "34.1234,-118.5678"
-  },
-  {
-    "trail_name": "Crystal Falls Loop",
-    "description": "A beautiful loop trail featuring waterfalls, river crossings, and lush greenery.",
-    "distance_miles": 6.5,
-    "estimated_duration_hours": 4,
-    "difficulty_level": "Strenuous",
-    "elevation_gain_feet": 1500,
-    "best_season": "Summer",
-    "parking_info": "Limited parking at the entrance, $5 fee required.",
-    "starting_coordinates": "34.5678,-118.9876"
-  }
-]
-Ensure the coordinates are valid and accurate for trails in ${location}. If exact coordinates are not available, approximate them based on real-world trail locations`;
+        Format the response as a JSON array of trail objects, each containing these fields, with coordinates in the format "latitude,longitude".`;
 
       let suggestions = [];
 
@@ -406,45 +352,26 @@ Ensure the coordinates are valid and accurate for trails in ${location}. If exac
           response_format: { type: "json_object" },
         });
         const content = JSON.parse(response.choices[0].message.content || "{}");
-        suggestions = Array.isArray(content) ? content : content.trails || [content];
-
-        // Format the suggestions to match our schema
-        suggestions = suggestions.map(suggestion => ({
-          name: suggestion.trail_name,
-          description: suggestion.description,
-          difficulty: suggestion.difficulty_level,
-          distance: `${suggestion.distance_miles} miles`,
-          elevation: `${suggestion.elevation_gain_feet} feet`,
-          duration: `${suggestion.estimated_duration_hours} hours`,
-          bestSeason: suggestion.best_season,
-          parkingInfo: suggestion.parking_info,
-          coordinates: suggestion.starting_coordinates,
-        }));
+        suggestions = Array.isArray(content.trails) ? content.trails : [content];
       } else if (enabledProvider.provider === "gemini") {
-        const genAI = new GoogleGenerativeAI(enabledProvider.apiKey || "");
-        const model = genAI.getGenerativeModel({
+        const genAI = new GoogleGenerativeAI(enabledProvider.apiKey || '');
+        const model = genAI.getGenerativeModel({ 
           model: enabledProvider.model || "gemini-pro",
           generationConfig: {
             temperature: parseFloat(enabledProvider.temperature) || 0.7,
-          },
+          }
         });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const content = JSON.parse(response.text());
-        suggestions = Array.isArray(content.trails)
-          ? content.trails
-          : [content];
+        suggestions = Array.isArray(content.trails) ? content.trails : [content];
       }
 
       res.json({ suggestions });
     } catch (error: any) {
-      console.error("Error generating AI suggestions:", error);
-      res
-        .status(500)
-        .json({
-          message: error.message || "Failed to generate trail suggestions",
-        });
+      console.error('Error generating AI suggestions:', error);
+      res.status(500).json({ message: error.message || "Failed to generate trail suggestions" });
     }
   });
 
@@ -452,74 +379,62 @@ Ensure the coordinates are valid and accurate for trails in ${location}. If exac
   const upload = multer({ storage: multer.memoryStorage() });
 
   // GPX file upload
-  app.post(
-    "/api/trails/:id/gpx",
-    requireRole(["admin", "guide"]),
-    upload.single("gpx"),
-    async (req: AuthenticatedRequest, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        if (isNaN(id)) {
-          return res.status(400).json({ message: "Invalid trail ID" });
-        }
-
-        if (!req.file) {
-          return res.status(400).json({ message: "No GPX file provided" });
-        }
-
-        if (!req.file.buffer) {
-          return res.status(400).json({ message: "Invalid file format" });
-        }
-
-        const gpxContent = req.file.buffer.toString("utf-8");
-
-        let coordinates: string;
-        let pathCoordinates: string;
-        let name: string | undefined;
-        let description: string | undefined;
-
-        try {
-          const result = parseGpxFile(gpxContent);
-          coordinates = result.coordinates;
-          pathCoordinates = result.pathCoordinates;
-          name = result.name;
-          description = result.description;
-        } catch (parseError) {
-          console.error("GPX parsing error:", parseError);
-          return res
-            .status(400)
-            .json({
-              message:
-                "Failed to parse GPX file: " + (parseError as Error).message,
-            });
-        }
-
-        // Validate the parsed coordinates
-        if (!coordinates || !pathCoordinates) {
-          return res
-            .status(400)
-            .json({ message: "No valid coordinates found in GPX file" });
-        }
-
-        const trail = await storage.updateTrail(id, {
-          coordinates,
-          pathCoordinates,
-          name: name || undefined,
-          description: description || undefined,
-          lastUpdatedById: req.user.id,
-        });
-
-        if (!trail) {
-          return res.status(404).json({ message: "Trail not found" });
-        }
-
-        res.json(trail);
-      } catch (error) {
-        console.error("GPX upload error:", error);
-        res.status(500).json({ message: "Failed to process GPX file" });
+  app.post("/api/trails/:id/gpx", requireRole(["admin", "guide"]), upload.single('gpx'), async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
       }
-    },
-  );
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No GPX file provided" });
+      }
+
+      if (!req.file.buffer) {
+        return res.status(400).json({ message: "Invalid file format" });
+      }
+
+      const gpxContent = req.file.buffer.toString('utf-8');
+
+      let coordinates: string;
+      let pathCoordinates: string;
+      let name: string | undefined;
+      let description: string | undefined;
+
+      try {
+        const result = parseGpxFile(gpxContent);
+        coordinates = result.coordinates;
+        pathCoordinates = result.pathCoordinates;
+        name = result.name;
+        description = result.description;
+      } catch (parseError) {
+        console.error("GPX parsing error:", parseError);
+        return res.status(400).json({ message: "Failed to parse GPX file: " + (parseError as Error).message });
+      }
+
+      // Validate the parsed coordinates
+      if (!coordinates || !pathCoordinates) {
+        return res.status(400).json({ message: "No valid coordinates found in GPX file" });
+      }
+
+      const trail = await storage.updateTrail(id, {
+        coordinates,
+        pathCoordinates,
+        name: name || undefined,
+        description: description || undefined,
+        lastUpdatedById: req.user.id,
+      });
+
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+
+      res.json(trail);
+    } catch (error) {
+      console.error("GPX upload error:", error);
+      res.status(500).json({ message: "Failed to process GPX file" });
+    }
+  });
 
   // GPX file download
   app.get("/api/trails/:id/gpx", async (req, res) => {
@@ -540,14 +455,11 @@ Ensure the coordinates are valid and accurate for trails in ${location}. If exac
         trail.name,
         trail.description,
         trail.elevation,
-        trail.distance,
+        trail.distance
       );
 
-      res.setHeader("Content-Type", "application/gpx+xml");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="trail-${id}.gpx"`,
-      );
+      res.setHeader('Content-Type', 'application/gpx+xml');
+      res.setHeader('Content-Disposition', `attachment; filename="trail-${id}.gpx"`);
       res.send(gpxContent);
     } catch (error) {
       console.error("GPX download error:", error);
