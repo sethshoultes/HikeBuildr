@@ -429,29 +429,7 @@ export default function TrailDetails() {
                           )}
                         />
                       </div>
-                      {isAdmin && (
-                        <div className="flex gap-2 mb-4">
-                          <Button
-                            variant="outline"
-                            onClick={() => document.getElementById('gpx-upload')?.click()}
-                            disabled={uploadGpxMutation.isPending}
-                          >
-                            {uploadGpxMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Upload className="h-4 w-4 mr-2" />
-                            )}
-                            Upload GPX
-                          </Button>
-                          <input
-                            id="gpx-upload"
-                            type="file"
-                            accept=".gpx"
-                            className="hidden"
-                            onChange={handleGpxUpload}
-                          />
-                        </div>
-                      )}
+
                       <Button
                         type="submit"
                         className="w-full"
@@ -465,6 +443,38 @@ export default function TrailDetails() {
                       </Button>
                     </form>
                   </Form>
+
+                  {/* GPX Upload Section - Outside the form */}
+                  {isAdmin && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h3 className="text-lg font-medium mb-2">GPX File Management</h3>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document.getElementById('gpx-upload')?.click();
+                          }}
+                          disabled={uploadGpxMutation.isPending}
+                        >
+                          {uploadGpxMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          Upload GPX
+                        </Button>
+                        <input
+                          id="gpx-upload"
+                          type="file"
+                          accept=".gpx"
+                          className="hidden"
+                          onChange={handleGpxUpload}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
