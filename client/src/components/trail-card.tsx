@@ -13,7 +13,12 @@ export function TrailCard({ trail }: TrailCardProps) {
     <Card className="relative hover:shadow-lg transition-shadow cursor-pointer">
       <Link href={`/trail/${trail.id}`}>
         <CardHeader>
-          <CardTitle>{trail.name}</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>{trail.name}</span>
+            <span className="text-sm font-normal px-2 py-1 bg-primary/10 rounded-full">
+              {trail.difficulty}
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -28,11 +33,6 @@ export function TrailCard({ trail }: TrailCardProps) {
             <div className="flex items-center text-muted-foreground">
               <Clock className="h-4 w-4 mr-2" />
               <span>{trail.duration}</span>
-            </div>
-            <div className="flex justify-end mt-2">
-              <span className="text-sm font-normal px-2 py-1 bg-primary/10 rounded-full">
-                {trail.difficulty}
-              </span>
             </div>
           </div>
         </CardContent>

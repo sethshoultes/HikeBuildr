@@ -15,10 +15,7 @@ export function FavoriteButton({ trailId, variant = "default" }: FavoriteButtonP
   const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const isFavorited = isFavorite(trailId);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent event bubbling to parent Link component
-    e.stopPropagation();
-
+  const handleClick = () => {
     if (!user) {
       navigate("/auth");
       return;
@@ -37,16 +34,13 @@ export function FavoriteButton({ trailId, variant = "default" }: FavoriteButtonP
         variant="ghost"
         size="icon"
         onClick={handleClick}
-        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background/90 z-10"
+        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
       >
         {isFavorited ? (
-          <Heart className="h-[1.2rem] w-[1.2rem] fill-red-500 text-red-500" />
+          <Heart className="h-4 w-4 fill-primary text-primary" />
         ) : (
-          <Heart className="h-[1.2rem] w-[1.2rem]" />
+          <Heart className="h-4 w-4" />
         )}
-        <span className="sr-only">
-          {isFavorited ? "Remove from favorites" : "Add to favorites"}
-        </span>
       </Button>
     );
   }
