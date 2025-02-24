@@ -2,6 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { OpenAI } from "openai"; // Add OpenAI import
 import { generateTrailDescription, generateGearList } from "./openai";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { insertTrailSchema } from "@shared/schema";
@@ -159,10 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (provider === "openai") {
         try {
-          const OpenAI = require('openai');
           const openai = new OpenAI({ apiKey: setting.apiKey });
           const response = await openai.chat.completions.create({
-            model: setting.model || "gpt-4o",
+            model: setting.model || "gpt-4",
             messages: [{ role: "user", content: "Test connection" }],
             max_tokens: 5
           });
@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: isValid,
         message,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error validating API:', error);
       res.status(500).json({ message: "Failed to validate API" });
     }
