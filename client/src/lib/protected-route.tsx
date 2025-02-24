@@ -1,37 +1,44 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect, Route, useLocation } from "wouter";
+
+interface ProtectedRouteProps {
+  path: string;
+  component: () => React.JSX.Element;
+  roles?: string[];
+}
 
 export function ProtectedRoute({
   path,
   component: Component,
-}: {
-  path: string;
-  component: () => React.JSX.Element;
-}) {
+  roles,
+}: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
-        </div>
-      </Route>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Route path={path}>
-        <Redirect to="/auth" />
-      </Route>
-    );
-  }
+  const [location] = useLocation();
 
   return (
     <Route path={path}>
-      <Component />
+      {() => {
+        if (isLoading) {
+          return (
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          );
+        }
+
+        if (!user) {
+          // Redirect to auth page with return path
+          const returnPath = encodeURIComponent(location);
+          return <Redirect to={`/auth?returnTo=${returnPath}`} />;
+        }
+
+        if (roles && !roles.includes(user.role)) {
+          return <Redirect to="/" />;
+        }
+
+        return <Component />;
+      }}
     </Route>
   );
 }
