@@ -33,6 +33,7 @@ interface TrailSuggestion {
   parking_information?: string;
   coordinates?: string;
   starting_coordinates?: string;
+  starting_point_coordinates?: string;
   trail_coordinates?: string;
 }
 
@@ -87,7 +88,10 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
       location: location,
       bestSeason: suggestion.bestSeason || suggestion.best_season,
       parkingInfo: suggestion.parkingInfo || suggestion.parking_information,
-      coordinates: suggestion.coordinates || suggestion.starting_coordinates || suggestion.trail_coordinates || '',
+      coordinates: suggestion.coordinates || 
+                  suggestion.starting_point_coordinates || 
+                  suggestion.starting_coordinates || 
+                  suggestion.trail_coordinates || '',
     };
 
     onSuggestionApply(formattedSuggestion);
@@ -167,10 +171,16 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
                           <strong>Description:</strong>{" "}
                           {suggestion.description || suggestion.trail_description}
                         </p>
-                        {(suggestion.coordinates || suggestion.starting_coordinates || suggestion.trail_coordinates) && (
+                        {(suggestion.coordinates || 
+                          suggestion.starting_point_coordinates || 
+                          suggestion.starting_coordinates || 
+                          suggestion.trail_coordinates) && (
                           <p>
                             <strong>Starting Point:</strong>{" "}
-                            {suggestion.coordinates || suggestion.starting_coordinates || suggestion.trail_coordinates}
+                            {suggestion.coordinates || 
+                             suggestion.starting_point_coordinates || 
+                             suggestion.starting_coordinates || 
+                             suggestion.trail_coordinates}
                           </p>
                         )}
                       </div>
