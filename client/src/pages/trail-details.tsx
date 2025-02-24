@@ -207,9 +207,25 @@ export default function TrailDetails() {
   };
 
   const handleSuggestionApply = (suggestion: Partial<Trail>) => {
+    // Get current form values
+    const currentValues = form.getValues();
+
+    // Update form with suggestion, keeping existing values as fallback
     form.reset({
-      ...form.getValues(),
-      ...suggestion,
+      ...currentValues,
+      name: suggestion.name || currentValues.name,
+      description: suggestion.description || currentValues.description,
+      difficulty: suggestion.difficulty || currentValues.difficulty,
+      distance: suggestion.distance || currentValues.distance,
+      elevation: suggestion.elevation || currentValues.elevation,
+      duration: suggestion.duration || currentValues.duration,
+      location: suggestion.location || currentValues.location,
+      bestSeason: suggestion.bestSeason || currentValues.bestSeason,
+      parkingInfo: suggestion.parkingInfo || currentValues.parkingInfo,
+      // Keep existing coordinates and pathCoordinates
+      coordinates: currentValues.coordinates,
+      pathCoordinates: currentValues.pathCoordinates,
+      imageUrl: currentValues.imageUrl,
     });
   };
 

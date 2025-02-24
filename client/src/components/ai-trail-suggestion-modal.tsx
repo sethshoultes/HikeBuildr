@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { InsertTrail } from "@shared/schema";
+import type { Trail } from "@shared/schema";
 
 interface AITrailSuggestionModalProps {
-  onSuggestionApply: (suggestion: Partial<InsertTrail>) => void;
+  onSuggestionApply: (suggestion: Partial<Trail>) => void;
 }
 
 export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionModalProps) {
@@ -31,12 +31,25 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
     try {
       const response = await apiRequest("POST", "/api/trails/ai-suggest", { location });
       const suggestion = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(suggestion.message || "Failed to generate suggestion");
       }
 
-      onSuggestionApply(suggestion);
+      // Map the AI response to our form fields
+      const formattedSuggestion: Partial<Trail> = {
+        name: suggestion.name || suggestion.trailName || suggestion.trail_name,
+        description: suggestion.description || suggestion.trail_description,
+        difficulty: suggestion.difficulty || suggestion.difficulty_level,
+        distance: suggestion.distance || suggestion.trail_distance,
+        elevation: suggestion.elevation || suggestion.elevation_gain,
+        duration: suggestion.duration || suggestion.estimated_duration,
+        location: location,
+        bestSeason: suggestion.bestSeason || suggestion.best_season,
+        parkingInfo: suggestion.parkingInfo || suggestion.parking_information,
+      };
+
+      onSuggestionApply(formattedSuggestion);
       setIsOpen(false);
       toast({
         title: "Suggestion generated",
