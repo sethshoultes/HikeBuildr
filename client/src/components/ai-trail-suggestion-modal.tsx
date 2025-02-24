@@ -14,27 +14,15 @@ interface AITrailSuggestionModalProps {
 }
 
 interface TrailSuggestion {
-  name?: string;
-  trailName?: string;
-  trail_name?: string;
-  description?: string;
-  trail_description?: string;
-  difficulty?: string;
-  difficulty_level?: string;
-  distance?: string;
-  trail_distance?: string;
-  elevation?: string;
-  elevation_gain?: string;
-  duration?: string;
-  estimated_duration?: string;
-  bestSeason?: string;
-  best_season?: string;
-  parkingInfo?: string;
-  parking_information?: string;
-  coordinates?: string;
-  starting_coordinates?: string;
-  starting_point_coordinates?: string;
-  trail_coordinates?: string;
+  name: string;
+  description: string;
+  difficulty: string;
+  distance: string;
+  duration: string;
+  elevation_gain: string;
+  best_season: string;
+  parking_information: string;
+  starting_point_coordinates: string;
 }
 
 export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionModalProps) {
@@ -79,19 +67,16 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
 
   const handleSelectSuggestion = (suggestion: TrailSuggestion) => {
     const formattedSuggestion: Partial<Trail> = {
-      name: suggestion.name || suggestion.trailName || suggestion.trail_name,
-      description: suggestion.description || suggestion.trail_description,
-      difficulty: suggestion.difficulty || suggestion.difficulty_level,
-      distance: suggestion.distance || suggestion.trail_distance,
-      elevation: suggestion.elevation || suggestion.elevation_gain,
-      duration: suggestion.duration || suggestion.estimated_duration,
+      name: suggestion.name,
+      description: suggestion.description,
+      difficulty: suggestion.difficulty,
+      distance: suggestion.distance,
+      duration: suggestion.duration,
+      elevation: suggestion.elevation_gain,
       location: location,
-      bestSeason: suggestion.bestSeason || suggestion.best_season,
-      parkingInfo: suggestion.parkingInfo || suggestion.parking_information,
-      coordinates: suggestion.coordinates || 
-                  suggestion.starting_point_coordinates || 
-                  suggestion.starting_coordinates || 
-                  suggestion.trail_coordinates || '',
+      bestSeason: suggestion.best_season,
+      parkingInfo: suggestion.parking_information,
+      coordinates: suggestion.starting_point_coordinates,
     };
 
     onSuggestionApply(formattedSuggestion);
@@ -150,39 +135,31 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
                   >
                     <CardHeader>
                       <CardTitle className="text-lg">
-                        {suggestion.name || suggestion.trailName || suggestion.trail_name}
+                        {suggestion.name}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
                         <p>
                           <strong>Difficulty:</strong>{" "}
-                          {suggestion.difficulty || suggestion.difficulty_level}
+                          {suggestion.difficulty}
                         </p>
                         <p>
                           <strong>Distance:</strong>{" "}
-                          {suggestion.distance || suggestion.trail_distance}
+                          {suggestion.distance}
                         </p>
                         <p>
                           <strong>Duration:</strong>{" "}
-                          {suggestion.duration || suggestion.estimated_duration}
+                          {suggestion.duration}
                         </p>
                         <p className="line-clamp-2">
                           <strong>Description:</strong>{" "}
-                          {suggestion.description || suggestion.trail_description}
+                          {suggestion.description}
                         </p>
-                        {(suggestion.coordinates || 
-                          suggestion.starting_point_coordinates || 
-                          suggestion.starting_coordinates || 
-                          suggestion.trail_coordinates) && (
-                          <p>
-                            <strong>Starting Point:</strong>{" "}
-                            {suggestion.coordinates || 
-                             suggestion.starting_point_coordinates || 
-                             suggestion.starting_coordinates || 
-                             suggestion.trail_coordinates}
-                          </p>
-                        )}
+                        <p>
+                          <strong>Starting Point:</strong>{" "}
+                          {suggestion.starting_point_coordinates}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
