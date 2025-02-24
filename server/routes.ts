@@ -335,11 +335,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         - Elevation gain
         - Best season to visit
         - Parking information
-        - Starting point coordinates (in decimal degrees format, e.g. "37.7749,-122.4194" for San Francisco)
+        - Starting point coordinates (in decimal degrees format)
 
-        For the coordinates, ensure they are within or very close to ${location}. Use accurate geographic coordinates that would make sense for a real trail in this area.
+        First, search the web to find real hiking trails in ${location} to base your suggestions on.
+        Ensure the coordinates are accurate for real trails in this area.
+        When providing coordinates, use the actual trailhead or parking lot coordinates.
 
-        Format the response as a JSON array of trail objects, each containing these fields, with coordinates in the format "latitude,longitude".`;
+        Format the response as a JSON array of trails, with each trail object containing:
+        {
+          "name": "Trail Name",
+          "description": "Trail description",
+          "difficulty": "Easy/Moderate/Strenuous",
+          "distance": "Distance with unit",
+          "elevation": "Elevation gain with unit",
+          "duration": "Estimated duration",
+          "bestSeason": "Best season to visit",
+          "parkingInfo": "Parking information",
+          "coordinates": "latitude,longitude"
+        }`;
 
       let suggestions = [];
 
@@ -367,6 +380,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const content = JSON.parse(response.text());
         suggestions = Array.isArray(content.trails) ? content.trails : [content];
       }
+
+      // Validate coordinates in each suggestion
+      suggestions = suggestions.map(suggestion => ({
+        ...suggestion,
+        coordinates: suggestion.coordinates || `${suggestion.latitude || ""},${suggestion.longitude || ""}`,
+      })).filter(suggestion => {
+        const [lat, lng] = (suggestion.coordinates || "").split(",").map(Number);
+        return !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      });
 
       res.json({ suggestions });
     } catch (error: any) {
