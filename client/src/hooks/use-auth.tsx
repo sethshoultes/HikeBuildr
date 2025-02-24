@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    staleTime: Infinity, // Keep user data fresh indefinitely
   });
 
   const loginMutation = useMutation({
@@ -44,13 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      // Update user data immediately
+      // Set user data with infinite stale time to prevent unnecessary refetches
       queryClient.setQueryData(["/api/user"], user);
 
-      // Prefetch favorites to ensure they're available for the profile page
+      // Prefetch favorites with proper query function
       queryClient.prefetchQuery({
         queryKey: ["/api/user/favorites"],
-        queryFn: getQueryFn(),
+        queryFn: getQueryFn({ on401: "throw" }),
+        staleTime: 30 * 1000, // Consider favorites fresh for 30 seconds
       });
 
       toast({

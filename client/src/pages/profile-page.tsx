@@ -18,20 +18,26 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import React from 'react';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Only initialize form when we have user data
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
-    values: {
-      email: user?.email || "",
-      fullName: user?.fullName || "",
-      bio: user?.bio || "",
-    },
   });
+
+  // Reset form when user data changes
+  React.useEffect(() => {
+    if (user) {
+      form.reset({
+        email: user.email || "",
+        fullName: user.fullName || "",
+        bio: user.bio || "",
+      });
+    }
+  }, [user]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
