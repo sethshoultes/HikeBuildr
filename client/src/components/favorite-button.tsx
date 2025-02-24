@@ -15,7 +15,10 @@ export function FavoriteButton({ trailId, variant = "default" }: FavoriteButtonP
   const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const isFavorited = isFavorite(trailId);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent event bubbling to parent Link component
+    e.stopPropagation();
+
     if (!user) {
       navigate("/auth");
       return;

@@ -221,9 +221,11 @@ export class DatabaseStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user || !user.favorites) return [];
 
-    const favoriteIds = user.favorites;
     const favoriteTrails = await Promise.all(
-      favoriteIds.map(id => this.getTrailById(parseInt(id)))
+      user.favorites.map(async (id) => {
+        const trailId = parseInt(id);
+        return trailId ? this.getTrailById(trailId) : undefined;
+      })
     );
 
     return favoriteTrails.filter((trail): trail is Trail => trail !== undefined);
