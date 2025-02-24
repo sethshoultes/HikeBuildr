@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -30,7 +30,7 @@ const errorLogs: Array<{
 const startTime = Date.now();
 
 interface AuthenticatedRequest extends Request {
-  user: Express.User & {
+  user: {
     id: number;
     username: string;
     role: string;
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Error logging middleware
-  app.use((err: Error, req: Request, res: Express.Response, next: Express.NextFunction) => {
+  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     errorLogs.unshift({
       timestamp: new Date().toISOString(),
       error: err.message,
@@ -91,11 +91,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes with role-based protection
-  app.get("/api/admin/logs", requireRole(["admin"]), (_req, res) => {
+  app.get("/api/admin/logs", requireRole(["admin"]), (req: Request, res: Response) => {
     res.json(apiLogs);
   });
 
-  app.get("/api/admin/errors", requireRole(["admin"]), (_req, res) => {
+  app.get("/api/admin/errors", requireRole(["admin"]), (req: Request, res: Response) => {
     res.json(errorLogs);
   });
 
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/settings/:id", requireRole(["admin"]), async (req: AuthenticatedRequest, res) => {
+  app.patch("/api/admin/settings/:id", requireRole(["admin"]), async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -205,22 +205,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   // Trail management routes
-  app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
+  app.post("/api/trails", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res: Response) => {
     try {
       const validatedData = insertTrailSchema.parse({
         ...req.body,
         createdById: req.user.id,
         lastUpdatedById: req.user.id,
+        pathCoordinates: req.body.pathCoordinates || null,
       });
 
       const trail = await storage.createTrail(validatedData);
       res.status(201).json(trail);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred" });
+      }
     }
   });
 
-  app.patch("/api/trails/:id", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res) => {
+  app.patch("/api/trails/:id", requireRole(["admin", "guide"]), async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -314,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const upload = multer({ storage: multer.memoryStorage() });
 
   // GPX file upload
-  app.post("/api/trails/:id/gpx", requireRole(["admin", "guide"]), upload.single('gpx'), async (req: AuthenticatedRequest, res) => {
+  app.post("/api/trails/:id/gpx", requireRole(["admin", "guide"]), upload.single('gpx'), async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -330,33 +335,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const gpxContent = req.file.buffer.toString('utf-8');
+      const result = parseGpxFile(gpxContent);
 
-      let coordinates: string;
-      let pathCoordinates: string;
-      let name: string | undefined;
-      let description: string | undefined;
-
-      try {
-        const result = parseGpxFile(gpxContent);
-        coordinates = result.coordinates;
-        pathCoordinates = result.pathCoordinates;
-        name = result.name;
-        description = result.description;
-      } catch (parseError) {
-        console.error("GPX parsing error:", parseError);
-        return res.status(400).json({ message: "Failed to parse GPX file: " + (parseError as Error).message });
-      }
-
-      // Validate the parsed coordinates
-      if (!coordinates || !pathCoordinates) {
+      if (!result.coordinates || !result.pathCoordinates) {
         return res.status(400).json({ message: "No valid coordinates found in GPX file" });
       }
 
       const trail = await storage.updateTrail(id, {
-        coordinates,
-        pathCoordinates,
-        name: name || undefined,
-        description: description || undefined,
+        coordinates: result.coordinates,
+        pathCoordinates: result.pathCoordinates,
+        name: result.name || undefined,
+        description: result.description || undefined,
         lastUpdatedById: req.user.id,
       });
 
@@ -367,7 +356,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(trail);
     } catch (error) {
       console.error("GPX upload error:", error);
-      res.status(500).json({ message: "Failed to process GPX file" });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unexpected error occurred" });
+      }
     }
   });
 

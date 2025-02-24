@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
-import { hashPassword } from "./utils/password";
+import { hashPassword, comparePasswords } from "./utils/password";
 
 const PostgresStore = connectPgSimple(session);
 
@@ -169,13 +169,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        password: users.password,
-        role: users.role,
-        favorites: users.favorites
-      })
+      .select()
       .from(users)
       .where(eq(users.username, username));
     return user;
