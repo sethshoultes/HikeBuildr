@@ -10,7 +10,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Home, BarChart2, LogOut } from "lucide-react";
+import { Home, BarChart2, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function NavHeader() {
@@ -35,6 +35,22 @@ export function NavHeader() {
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
+
+            {user && (
+              <NavigationMenuItem>
+                <Link href="/profile">
+                  <NavigationMenuLink 
+                    className={cn(
+                      navigationMenuTriggerStyle(),
+                      location === "/profile" && "bg-accent"
+                    )}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+            )}
 
             {user?.role === "admin" && (
               <NavigationMenuItem>
