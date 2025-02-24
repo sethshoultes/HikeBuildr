@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { FavoriteButton } from "@/components/favorite-button";
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -482,15 +481,12 @@ export default function TrailDetails() {
               <Card>
                 <CardContent className="p-6">
                   <div className="space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h2 className="text-xl font-semibold mb-2">Details</h2>
-                        <p>Location: {trail?.location}</p>
-                        <p>Distance: {trail?.distance}</p>
-                        <p>Duration: {trail?.duration}</p>
-                        <p>Difficulty: {trail?.difficulty}</p>
-                      </div>
-                      {trail && <FavoriteButton trailId={trail.id} />}
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Details</h2>
+                      <p>Location: {trail?.location}</p>
+                      <p>Distance: {trail?.distance}</p>
+                      <p>Duration: {trail?.duration}</p>
+                      <p>Difficulty: {trail?.difficulty}</p>
                     </div>
 
                     <div>

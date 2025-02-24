@@ -402,43 +402,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/favorites", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-      const favorites = await storage.getUserFavorites(req.user.id);
-      res.json(favorites);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/trails/:id/favorite", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-      const trailId = parseInt(req.params.id);
-      if (isNaN(trailId)) {
-        return res.status(400).json({ message: "Invalid trail ID" });
-      }
-
-      await storage.addFavoriteTrail(req.user.id, trailId);
-      res.sendStatus(200);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/trails/:id/favorite", requireAuth, async (req: AuthenticatedRequest, res) => {
-    try {
-      const trailId = parseInt(req.params.id);
-      if (isNaN(trailId)) {
-        return res.status(400).json({ message: "Invalid trail ID" });
-      }
-
-      await storage.removeFavoriteTrail(req.user.id, trailId);
-      res.sendStatus(200);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }

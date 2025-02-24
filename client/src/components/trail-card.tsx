@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trail } from "@shared/schema";
 import { MapPin, Clock, Ruler } from "lucide-react";
-import { FavoriteButton } from "./favorite-button";
 
 interface TrailCardProps {
   trail: Trail;
@@ -10,8 +9,8 @@ interface TrailCardProps {
 
 export function TrailCard({ trail }: TrailCardProps) {
   return (
-    <Card className="relative hover:shadow-lg transition-shadow cursor-pointer">
-      <Link href={`/trail/${trail.id}`}>
+    <Link href={`/trail/${trail.id}`}>
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{trail.name}</span>
@@ -36,10 +35,7 @@ export function TrailCard({ trail }: TrailCardProps) {
             </div>
           </div>
         </CardContent>
-      </Link>
-      <div className="absolute bottom-2 right-2 z-10">
-        <FavoriteButton trailId={trail.id} variant="icon" />
-      </div>
-    </Card>
+      </Card>
+    </Link>
   );
 }
