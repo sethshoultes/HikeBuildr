@@ -310,6 +310,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI features (protected)
+  app.post("/api/trails/ai-suggest", requireAuth, async (req, res) => {
+    try {
+      const { location } = req.body;
+      if (!location) {
+        return res.status(400).json({ message: "Location is required" });
+      }
+
+      // Get the enabled AI provider settings
+      const providers = await storage.getApiSettings();
+      const enabledProvider = providers.find(p => p.isEnabled);
+
+      if (!enabledProvider) {
+        return res.status(400).json({ message: "No AI provider is configured and enabled" });
+      }
+
+      const prompt = `Generate a detailed hiking trail suggestion for ${location}. Include the following details:
+        - A suitable name for the trail
+        - Trail description
+        - Approximate distance
+        - Estimated duration
+        - Difficulty level (Easy, Moderate, or Strenuous)
+        - Elevation gain
+        - Best season to visit
+        - Parking information
+
+        Format the response as a JSON object with these fields.`;
+
+      let suggestion;
+
+      if (enabledProvider.provider === "openai") {
+        const openai = new OpenAI({ apiKey: enabledProvider.apiKey });
+        const response = await openai.chat.completions.create({
+          model: enabledProvider.model || "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          temperature: parseFloat(enabledProvider.temperature) || 0.7,
+          response_format: { type: "json_object" },
+        });
+        suggestion = JSON.parse(response.choices[0].message.content || "{}");
+      } else if (enabledProvider.provider === "gemini") {
+        const genAI = new GoogleGenerativeAI(enabledProvider.apiKey || '');
+        const model = genAI.getGenerativeModel({ 
+          model: enabledProvider.model || "gemini-pro",
+          generationConfig: {
+            temperature: parseFloat(enabledProvider.temperature) || 0.7,
+          }
+        });
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        suggestion = JSON.parse(response.text());
+      }
+
+      res.json(suggestion);
+    } catch (error: any) {
+      console.error('Error generating AI suggestion:', error);
+      res.status(500).json({ message: error.message || "Failed to generate trail suggestion" });
+    }
+  });
+
   // Set up multer for file uploads
   const upload = multer({ storage: multer.memoryStorage() });
 

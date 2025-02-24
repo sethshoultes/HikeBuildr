@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AITrailSuggestionModal } from "@/components/ai-trail-suggestion-modal";
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -109,7 +110,6 @@ export default function TrailDetails() {
         id === "new" ? "/api/trails" : `/api/trails/${id}`,
         {
           ...data,
-          // Ensure pathCoordinates is properly included in the mutation
           pathCoordinates: form.getValues("pathCoordinates") || null,
         }
       );
@@ -206,6 +206,13 @@ export default function TrailDetails() {
     }
   };
 
+  const handleSuggestionApply = (suggestion: Partial<Trail>) => {
+    form.reset({
+      ...form.getValues(),
+      ...suggestion,
+    });
+  };
+
   if (isLoading && id !== "new") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -251,6 +258,11 @@ export default function TrailDetails() {
                   <CardTitle>{id === "new" ? "Create Trail" : "Edit Trail"}</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {id === "new" && (
+                    <div className="mb-6">
+                      <AITrailSuggestionModal onSuggestionApply={handleSuggestionApply} />
+                    </div>
+                  )}
                   <Form {...form}>
                     <form
                       onSubmit={form.handleSubmit((data) =>
@@ -444,7 +456,6 @@ export default function TrailDetails() {
                     </form>
                   </Form>
 
-                  {/* GPX Upload Section - Outside the form */}
                   {isAdmin && (
                     <div className="mt-4 pt-4 border-t">
                       <h3 className="text-lg font-medium mb-2">GPX File Management</h3>
