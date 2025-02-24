@@ -22,8 +22,8 @@ export function parseGpxFile(gpxContent: string): {
     const waypoints: GpxPoint[] = [];
     root.each((node) => {
       if (node.node.nodeName === 'wpt') {
-        const lat = parseFloat(node.attr('lat')?.value || '');
-        const lon = parseFloat(node.attr('lon')?.value || '');
+        const lat = parseFloat(node.attribute('lat')?.value || '');
+        const lon = parseFloat(node.attribute('lon')?.value || '');
 
         if (!isNaN(lat) && !isNaN(lon)) {
           waypoints.push({ lat, lon });
@@ -41,9 +41,9 @@ export function parseGpxFile(gpxContent: string): {
 
     root.each((node) => {
       if (node.node.nodeName === 'name') {
-        name = node.text();
+        name = node.value();
       } else if (node.node.nodeName === 'desc') {
-        description = node.text();
+        description = node.value();
       }
     });
 
