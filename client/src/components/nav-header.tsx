@@ -24,14 +24,17 @@ export function NavHeader() {
           <NavigationMenuList>
             <NavigationMenuItem>
               <Link href="/">
-                <NavigationMenuLink 
+                <NavigationMenuLink
+                  asChild
                   className={cn(
                     navigationMenuTriggerStyle(),
                     location === "/" && "bg-accent"
                   )}
                 >
-                  <Home className="h-4 w-4 mr-2" />
-                  Home
+                  <span>
+                    <Home className="h-4 w-4 mr-2" />
+                    Home
+                  </span>
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -39,14 +42,17 @@ export function NavHeader() {
             {user && (
               <NavigationMenuItem>
                 <Link href="/profile">
-                  <NavigationMenuLink 
+                  <NavigationMenuLink
+                    asChild
                     className={cn(
                       navigationMenuTriggerStyle(),
                       location === "/profile" && "bg-accent"
                     )}
                   >
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
+                    <span>
+                      <User className="h-4 w-4 mr-2" />
+                      Profile
+                    </span>
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
@@ -55,14 +61,17 @@ export function NavHeader() {
             {user?.role === "admin" && (
               <NavigationMenuItem>
                 <Link href="/admin">
-                  <NavigationMenuLink 
+                  <NavigationMenuLink
+                    asChild
                     className={cn(
                       navigationMenuTriggerStyle(),
                       location === "/admin" && "bg-accent"
                     )}
                   >
-                    <BarChart2 className="h-4 w-4 mr-2" />
-                    Admin Dashboard
+                    <span>
+                      <BarChart2 className="h-4 w-4 mr-2" />
+                      Admin Dashboard
+                    </span>
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
