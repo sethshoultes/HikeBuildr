@@ -2,10 +2,10 @@ import { users, trails, type User, type Trail, type InsertUser, type UpdateUserP
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-import { hashPassword, comparePasswords } from "./utils/password";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresStore = connectPgSimple(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -28,16 +28,12 @@ export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // Prune expired entries every 24h
-      stale: false, // Don't allow stale data
-      ttl: 24 * 60 * 60 * 1000, // Session TTL (24 hours)
-      dispose: (key, value) => {
-        console.log(`Session expired: ${key}`);
-      },
-      noDisposeOnSet: true, // Don't dispose old value on set
-      touchAfter: 24 * 3600, // Only update once per day
+    this.sessionStore = new PostgresStore({
+      pool,
+      createTableIfMissing: true,
+      tableName: 'user_sessions'
     });
+
     Promise.all([
       this.initializeSampleTrails(),
       this.initializeAdminUser()

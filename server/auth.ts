@@ -17,25 +17,20 @@ export function setupAuth(app: Express) {
     throw new Error("SESSION_SECRET environment variable must be set");
   }
 
-  // Simple, robust session configuration
+  // Session configuration
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
-    name: 'sess', // Simple session name
+    name: 'connect.sid',
     cookie: {
-      secure: false, // Allow both HTTP and HTTPS
+      secure: false, // Set to true in production with HTTPS
       httpOnly: true,
-      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   };
 
-  // Basic trust proxy setup
-  app.set("trust proxy", true);
-
-  // Session setup
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
