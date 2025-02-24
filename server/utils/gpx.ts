@@ -26,17 +26,22 @@ export function parseGpxFile(gpxContent: string): {
     description = gpx.metadata.desc || "";
   }
 
-  // Try to get coordinates from tracks first
-  if (gpx.tracks.length > 0) {
+  // Try to get coordinates from waypoints first
+  if (gpx.waypoints.length > 0) {
+    // Use first waypoint as main coordinate
+    coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
+    // Use all waypoints for the path
+    pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
+  }
+  // If no waypoints found, try tracks
+  else if (gpx.tracks.length > 0) {
     const track = gpx.tracks[0];
     if (track.name) name = track.name;
     if (track.desc) description = track.desc;
 
     const points = track.points;
     if (points.length > 0) {
-      // Use first point as main coordinate
       coordinates = `${points[0].lat},${points[0].lon}`;
-      // Use all points for the path
       pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
     }
   }
@@ -51,11 +56,6 @@ export function parseGpxFile(gpxContent: string): {
       coordinates = `${points[0].lat},${points[0].lon}`;
       pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
     }
-  }
-  // If no tracks or routes found, try waypoints
-  else if (gpx.waypoints.length > 0) {
-    coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
-    pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
   }
 
   if (!coordinates || !pathCoordinates) {
@@ -90,22 +90,7 @@ export function generateGpxFile(
     metadata.ele('desc').txt(description);
   }
 
-  // Add track
-  const trk = doc.ele('trk');
-  trk.ele('name').txt(trailName);
-  if (description) {
-    trk.ele('desc').txt(description);
-  }
-
-  // Add track metadata if available
-  if (distance) {
-    trk.ele('extensions')
-       .ele('length').txt(distance);
-  }
-
-  const trkseg = trk.ele('trkseg');
-
-  // Add path points
+  // Add waypoints for each point in the path
   if (pathCoordinates) {
     const points = pathCoordinates.split(';').map(coord => {
       const [lat, lon] = coord.split(',').map(Number);
@@ -115,22 +100,14 @@ export function generateGpxFile(
       return { lat, lon };
     });
 
-    points.forEach(point => {
-      const trkpt = trkseg.ele('trkpt', { lat: point.lat, lon: point.lon });
+    points.forEach((point, index) => {
+      const wpt = doc.ele('wpt', { lat: point.lat, lon: point.lon });
       if (elevation) {
-        trkpt.ele('ele').txt(elevation);
+        wpt.ele('ele').txt(elevation);
       }
+      wpt.ele('name').txt(`WPT${index + 1}`);
+      wpt.ele('sym').txt('Waypoint');
     });
-  } else if (coordinates) {
-    // If no path coordinates, use the main coordinate
-    const [lat, lon] = coordinates.split(',').map(Number);
-    if (isNaN(lat) || isNaN(lon)) {
-      throw new Error(`Invalid coordinates format: ${coordinates}`);
-    }
-    const trkpt = trkseg.ele('trkpt', { lat, lon });
-    if (elevation) {
-      trkpt.ele('ele').txt(elevation);
-    }
   }
 
   return doc.end({ prettyPrint: true });
