@@ -14,46 +14,48 @@ export function parseGpxFile(gpxContent: string): {
   try {
     console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
 
-    // Parse XML directly instead of using gpxparser
+    // Parse XML
     const doc = create(gpxContent);
-    const gpx = doc.root();
+    const root = doc.root();
 
-    // Extract waypoints
-    const waypoints = gpx.find('//wpt');
-    console.log("Found waypoints:", waypoints.length);
+    // Get all waypoints
+    const waypoints: GpxPoint[] = [];
+    root.each((node) => {
+      if (node.node.nodeName === 'wpt') {
+        const lat = parseFloat(node.attr('lat')?.value || '');
+        const lon = parseFloat(node.attr('lon')?.value || '');
 
-    if (!waypoints.length) {
-      throw new Error("No waypoints found in GPX file");
-    }
-
-    // Extract coordinates from waypoints
-    const coordinates = waypoints.map(wpt => {
-      const lat = wpt.attr('lat')?.value;
-      const lon = wpt.attr('lon')?.value;
-      if (!lat || !lon) {
-        throw new Error("Invalid waypoint coordinates");
+        if (!isNaN(lat) && !isNaN(lon)) {
+          waypoints.push({ lat, lon });
+        }
       }
-      return { lat, lon };
     });
 
-    // Use first waypoint as main coordinate
-    const mainCoords = `${coordinates[0].lat},${coordinates[0].lon}`;
+    if (waypoints.length === 0) {
+      throw new Error("No valid waypoints found in GPX file");
+    }
 
-    // Use all waypoints as path
-    const pathCoords = coordinates.map(c => `${c.lat},${c.lon}`).join(';');
+    // Get metadata
+    let name: string | undefined;
+    let description: string | undefined;
 
-    // Try to get name and description from metadata
-    const name = gpx.find('//metadata/name')?.first()?.value || 
-                gpx.find('//name')?.first()?.value || '';
+    root.each((node) => {
+      if (node.node.nodeName === 'name') {
+        name = node.text();
+      } else if (node.node.nodeName === 'desc') {
+        description = node.text();
+      }
+    });
 
-    const description = gpx.find('//metadata/desc')?.first()?.value || 
-                       gpx.find('//desc')?.first()?.value || '';
+    // Format coordinates
+    const mainCoords = `${waypoints[0].lat},${waypoints[0].lon}`;
+    const pathCoords = waypoints.map(p => `${p.lat},${p.lon}`).join(';');
 
     return {
       coordinates: mainCoords,
       pathCoordinates: pathCoords,
-      name: name || undefined,
-      description: description || undefined
+      name,
+      description
     };
   } catch (error) {
     console.error("GPX parsing error:", error);
