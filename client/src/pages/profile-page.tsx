@@ -18,7 +18,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useCallback, useEffect } from 'react';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -26,22 +25,12 @@ export default function ProfilePage() {
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
+    defaultValues: user ? {
+      email: user.email || "",
+      fullName: user.fullName || "",
+      bio: user.bio || "",
+    } : undefined
   });
-
-  const resetForm = useCallback(() => {
-    if (user) {
-      form.reset({
-        email: user.email || "",
-        fullName: user.fullName || "",
-        bio: user.bio || "",
-      });
-    }
-  }, [user, form.reset]);
-
-  // Initialize form data
-  useEffect(() => {
-    resetForm();
-  }, [resetForm]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
