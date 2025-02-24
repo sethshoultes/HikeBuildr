@@ -2,7 +2,8 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { OpenAI } from "openai"; // Add OpenAI import
+import { OpenAI } from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { generateTrailDescription, generateGearList } from "./openai";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { insertTrailSchema } from "@shared/schema";
@@ -172,8 +173,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message = `OpenAI API validation failed: ${error.message}`;
         }
       } else if (provider === "gemini") {
-        // Add Gemini API validation here when implemented
-        message = "Gemini API validation not implemented yet";
+        try {
+          const genAI = new GoogleGenerativeAI(setting.apiKey || '');
+          const model = genAI.getGenerativeModel({ model: setting.model || "gemini-pro" });
+
+          const result = await model.generateContent("Test connection");
+          const response = await result.response;
+          isValid = !!response;
+          message = "Gemini API connection successful";
+        } catch (error: any) {
+          message = `Gemini API validation failed: ${error.message}`;
+        }
       }
 
       if (isValid) {
