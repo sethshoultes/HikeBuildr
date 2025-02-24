@@ -18,19 +18,26 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
-    defaultValues: user ? {
-      email: user.email || "",
-      fullName: user.fullName || "",
-      bio: user.bio || "",
-    } : undefined
   });
+
+  // Reset form when user data becomes available
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        email: user.email || "",
+        fullName: user.fullName || "",
+        bio: user.bio || "",
+      });
+    }
+  }, [user, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -66,10 +73,21 @@ export default function ProfilePage() {
     updateProfileMutation.mutate(data);
   };
 
-  if (!user) {
+  if (isUserLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold">Not Logged In</h2>
+          <p className="text-muted-foreground">Please log in to view your profile</p>
+        </div>
       </div>
     );
   }
@@ -129,44 +147,6 @@ export default function ProfilePage() {
                     </FormItem>
                   )}
                 />
-
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Enter to change password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Enter new password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 <Button
                   type="submit"
