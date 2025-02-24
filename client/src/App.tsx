@@ -14,14 +14,14 @@ import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <NavHeader />
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/profile" component={ProfilePage} />
-        <Route path="/admin" component={AdminPage} />
-        <ProtectedRoute path="/trail/:id" component={TrailDetails} />
+        <ProtectedRoute path="/admin" component={AdminPage} />
+        <Route path="/trail/:id" component={TrailDetails} />
         <Route component={NotFound} />
       </Switch>
     </div>
@@ -29,14 +29,19 @@ function Router() {
 }
 
 function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+  try {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+  } catch (error) {
+    console.error('App initialization error:', error);
+    return <div>Something went wrong. Please refresh the page.</div>;
+  }
 }
 
 export default App;
