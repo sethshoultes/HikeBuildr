@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
   });
 
   const loginMutation = useMutation({
@@ -44,7 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
+      // Update user data immediately
       queryClient.setQueryData(["/api/user"], user);
+
+      // Prefetch favorites to ensure they're available for the profile page
+      queryClient.prefetchQuery({
+        queryKey: ["/api/user/favorites"],
+        queryFn: getQueryFn(),
+      });
+
       toast({
         title: "Welcome back!",
         description: `Logged in as ${user.username}`,
@@ -92,12 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      // Invalidate and remove user data
-      queryClient.removeQueries({ queryKey: ["/api/user"] });
-      queryClient.setQueryData(["/api/user"], null);
-
-      // Clear any cached trail data
-      queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
+      // Clear all query cache to ensure clean state
+      queryClient.clear();
 
       toast({
         title: "Goodbye!",

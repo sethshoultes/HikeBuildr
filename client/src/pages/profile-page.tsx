@@ -33,16 +33,18 @@ export default function ProfilePage() {
     },
   });
 
-  // Update form when user data is available
+  // Update form fields individually to prevent form reset flicker
   useEffect(() => {
     if (user) {
-      form.reset({
-        email: user.email || "",
-        fullName: user.fullName || "",
-        bio: user.bio || "",
+      const fields: (keyof UpdateUserProfile)[] = ['email', 'fullName', 'bio'];
+      fields.forEach(field => {
+        const value = user[field];
+        if (value !== undefined) {
+          form.setValue(field, value);
+        }
       });
     }
-  }, [user, form.reset]);
+  }, [user, form.setValue]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
