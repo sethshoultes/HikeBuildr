@@ -13,60 +13,78 @@ export function parseGpxFile(gpxContent: string): {
   description?: string
 } {
   const gpx = new Parser();
-  gpx.parse(gpxContent);
 
-  let coordinates = "";
-  let pathCoordinates = "";
-  let name = "";
-  let description = "";
+  try {
+    console.log("Parsing GPX content:", gpxContent.substring(0, 200) + "..."); // Log first 200 chars
+    gpx.parse(gpxContent);
 
-  // Extract metadata if available
-  if (gpx.metadata) {
-    name = gpx.metadata.name || "";
-    description = gpx.metadata.desc || "";
-  }
+    let coordinates = "";
+    let pathCoordinates = "";
+    let name = "";
+    let description = "";
 
-  // Try to get coordinates from waypoints first
-  if (gpx.waypoints && gpx.waypoints.length > 0) {
-    // Use first waypoint as main coordinate
-    coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
-    // Use all waypoints for the path
-    pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
-
-    // If first waypoint has a name/description, use it for the trail
-    if (gpx.waypoints[0].name) name = gpx.waypoints[0].name;
-    if (gpx.waypoints[0].desc) description = gpx.waypoints[0].desc;
-  }
-  // If no waypoints found, try tracks
-  else if (gpx.tracks.length > 0) {
-    const track = gpx.tracks[0];
-    if (track.name) name = track.name;
-    if (track.desc) description = track.desc;
-
-    const points = track.points;
-    if (points.length > 0) {
-      coordinates = `${points[0].lat},${points[0].lon}`;
-      pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
+    // Extract metadata if available
+    if (gpx.metadata) {
+      name = gpx.metadata.name || "";
+      description = gpx.metadata.desc || "";
     }
-  }
-  // If no tracks found, try routes
-  else if (gpx.routes.length > 0) {
-    const route = gpx.routes[0];
-    if (route.name) name = route.name;
-    if (route.desc) description = route.desc;
 
-    const points = route.points;
-    if (points.length > 0) {
-      coordinates = `${points[0].lat},${points[0].lon}`;
-      pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
+    // Try to get coordinates from waypoints first
+    if (gpx.waypoints && gpx.waypoints.length > 0) {
+      console.log("Found waypoints:", gpx.waypoints.length);
+      // Use first waypoint as main coordinate
+      coordinates = `${gpx.waypoints[0].lat},${gpx.waypoints[0].lon}`;
+      // Use all waypoints for the path
+      pathCoordinates = gpx.waypoints.map(p => `${p.lat},${p.lon}`).join(';');
+
+      // If first waypoint has a name/description, use it for the trail
+      if (gpx.waypoints[0].name) name = gpx.waypoints[0].name;
+      if (gpx.waypoints[0].desc) description = gpx.waypoints[0].desc;
     }
-  }
+    // If no waypoints found, try tracks
+    else if (gpx.tracks.length > 0) {
+      console.log("Found tracks:", gpx.tracks.length);
+      const track = gpx.tracks[0];
+      if (track.name) name = track.name;
+      if (track.desc) description = track.desc;
 
-  if (!coordinates || !pathCoordinates) {
-    throw new Error("No valid coordinates found in GPX file");
-  }
+      const points = track.points;
+      if (points.length > 0) {
+        coordinates = `${points[0].lat},${points[0].lon}`;
+        pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
+      }
+    }
+    // If no tracks found, try routes
+    else if (gpx.routes.length > 0) {
+      console.log("Found routes:", gpx.routes.length);
+      const route = gpx.routes[0];
+      if (route.name) name = route.name;
+      if (route.desc) description = route.desc;
 
-  return { coordinates, pathCoordinates, name, description };
+      const points = route.points;
+      if (points.length > 0) {
+        coordinates = `${points[0].lat},${points[0].lon}`;
+        pathCoordinates = points.map(p => `${p.lat},${p.lon}`).join(';');
+      }
+    }
+
+    // Validate the parsed data
+    if (!coordinates || !pathCoordinates) {
+      console.error("No valid coordinates found in GPX data");
+      console.log("Waypoints:", gpx.waypoints);
+      console.log("Tracks:", gpx.tracks);
+      console.log("Routes:", gpx.routes);
+      throw new Error("No valid coordinates found in GPX file");
+    }
+
+    console.log("Successfully parsed coordinates:", coordinates);
+    console.log("Path coordinates count:", pathCoordinates.split(';').length);
+
+    return { coordinates, pathCoordinates, name, description };
+  } catch (error) {
+    console.error("GPX parsing error:", error);
+    throw error;
+  }
 }
 
 export function generateGpxFile(
