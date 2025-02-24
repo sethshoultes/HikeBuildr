@@ -22,18 +22,24 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    proxy: true, // Trust the reverse proxy
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === 'production' ? true : 'auto', //More robust secure setting
       sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: "/",
-      httpOnly: true
+      httpOnly: true,
+      domain: process.env.REPLIT_DOMAIN ? `.${process.env.REPLIT_DOMAIN}` : undefined //Set domain based on env variable if available
+
     },
-    name: 'sid', // Custom session ID cookie name
+    name: 'replit_sid', // Explicit cookie name to avoid conflicts
     rolling: true, // Reset maxAge on every response
   };
 
+  // Configure trust proxy for Replit's environment
   app.set("trust proxy", 1);
+
+  // Setup session before passport
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());

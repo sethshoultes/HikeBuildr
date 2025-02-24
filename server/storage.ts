@@ -32,10 +32,11 @@ export class DatabaseStorage implements IStorage {
       checkPeriod: 86400000, // Prune expired entries every 24h
       stale: false, // Don't allow stale data
       ttl: 24 * 60 * 60 * 1000, // Session TTL (24 hours)
-      dispose: (key) => {
-        console.log(`Session expired and removed: ${key}`);
+      dispose: (key, value) => {
+        console.log(`Session expired: ${key}`);
       },
       noDisposeOnSet: true, // Don't dispose old value on set
+      touchAfter: 24 * 3600, // Only update once per day
     });
     Promise.all([
       this.initializeSampleTrails(),
