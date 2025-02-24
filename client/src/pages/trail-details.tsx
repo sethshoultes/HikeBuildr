@@ -407,7 +407,7 @@ export default function TrailDetails() {
                           <FormItem>
                             <FormLabel>Coordinates</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Use the map to set coordinates" readOnly />
+                              <Input {...field} placeholder="Use the map or AI suggestions to set coordinates" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
