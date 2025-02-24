@@ -5,16 +5,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { Trail } from "@shared/schema";
 
 interface AITrailSuggestionModalProps {
   onSuggestionApply: (suggestion: Partial<Trail>) => void;
 }
 
+interface TrailSuggestion {
+  name?: string;
+  trailName?: string;
+  trail_name?: string;
+  description?: string;
+  trail_description?: string;
+  difficulty?: string;
+  difficulty_level?: string;
+  distance?: string;
+  trail_distance?: string;
+  elevation?: string;
+  elevation_gain?: string;
+  duration?: string;
+  estimated_duration?: string;
+  bestSeason?: string;
+  best_season?: string;
+  parkingInfo?: string;
+  parking_information?: string;
+}
+
 export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [location, setLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<TrailSuggestion[]>([]);
   const { toast } = useToast();
 
   const handleGenerateSuggestion = async () => {
@@ -28,42 +51,47 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
     }
 
     setIsLoading(true);
+    setSuggestions([]);
+
     try {
       const response = await apiRequest("POST", "/api/trails/ai-suggest", { location });
-      const suggestion = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(suggestion.message || "Failed to generate suggestion");
+        throw new Error(data.message || "Failed to generate suggestions");
       }
 
-      // Map the AI response to our form fields
-      const formattedSuggestion: Partial<Trail> = {
-        name: suggestion.name || suggestion.trailName || suggestion.trail_name,
-        description: suggestion.description || suggestion.trail_description,
-        difficulty: suggestion.difficulty || suggestion.difficulty_level,
-        distance: suggestion.distance || suggestion.trail_distance,
-        elevation: suggestion.elevation || suggestion.elevation_gain,
-        duration: suggestion.duration || suggestion.estimated_duration,
-        location: location,
-        bestSeason: suggestion.bestSeason || suggestion.best_season,
-        parkingInfo: suggestion.parkingInfo || suggestion.parking_information,
-      };
-
-      onSuggestionApply(formattedSuggestion);
-      setIsOpen(false);
-      toast({
-        title: "Suggestion generated",
-        description: "AI has generated trail suggestions based on the location.",
-      });
+      setSuggestions(data.suggestions || []);
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate suggestion",
+        description: error instanceof Error ? error.message : "Failed to generate suggestions",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelectSuggestion = (suggestion: TrailSuggestion) => {
+    const formattedSuggestion: Partial<Trail> = {
+      name: suggestion.name || suggestion.trailName || suggestion.trail_name,
+      description: suggestion.description || suggestion.trail_description,
+      difficulty: suggestion.difficulty || suggestion.difficulty_level,
+      distance: suggestion.distance || suggestion.trail_distance,
+      elevation: suggestion.elevation || suggestion.elevation_gain,
+      duration: suggestion.duration || suggestion.estimated_duration,
+      location: location,
+      bestSeason: suggestion.bestSeason || suggestion.best_season,
+      parkingInfo: suggestion.parkingInfo || suggestion.parking_information,
+    };
+
+    onSuggestionApply(formattedSuggestion);
+    setIsOpen(false);
+    toast({
+      title: "Suggestion applied",
+      description: "The selected trail suggestion has been applied to the form.",
+    });
   };
 
   return (
@@ -73,9 +101,9 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
           🤖 Generate Trail with AI
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Generate Trail Suggestion</DialogTitle>
+          <DialogTitle>Generate Trail Suggestions</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-4">
           <div className="space-y-2">
@@ -99,9 +127,49 @@ export function AITrailSuggestionModal({ onSuggestionApply }: AITrailSuggestionM
                 Generating...
               </>
             ) : (
-              "Generate Suggestion"
+              "Generate Suggestions"
             )}
           </Button>
+
+          {suggestions.length > 0 && (
+            <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+              <div className="space-y-4">
+                {suggestions.map((suggestion, index) => (
+                  <Card
+                    key={index}
+                    className="cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg">
+                        {suggestion.name || suggestion.trailName || suggestion.trail_name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <p>
+                          <strong>Difficulty:</strong>{" "}
+                          {suggestion.difficulty || suggestion.difficulty_level}
+                        </p>
+                        <p>
+                          <strong>Distance:</strong>{" "}
+                          {suggestion.distance || suggestion.trail_distance}
+                        </p>
+                        <p>
+                          <strong>Duration:</strong>{" "}
+                          {suggestion.duration || suggestion.estimated_duration}
+                        </p>
+                        <p className="line-clamp-2">
+                          <strong>Description:</strong>{" "}
+                          {suggestion.description || suggestion.trail_description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No AI provider is configured and enabled" });
       }
 
-      const prompt = `Generate a detailed hiking trail suggestion for ${location}. Include the following details:
+      const prompt = `Generate 3 different hiking trail suggestions for ${location}. For each trail include:
         - A suitable name for the trail
         - Trail description
         - Approximate distance
@@ -336,9 +336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         - Best season to visit
         - Parking information
 
-        Format the response as a JSON object with these fields.`;
+        Format the response as a JSON array of trail objects, each containing these fields.`;
 
-      let suggestion;
+      let suggestions = [];
 
       if (enabledProvider.provider === "openai") {
         const openai = new OpenAI({ apiKey: enabledProvider.apiKey });
@@ -348,7 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           temperature: parseFloat(enabledProvider.temperature) || 0.7,
           response_format: { type: "json_object" },
         });
-        suggestion = JSON.parse(response.choices[0].message.content || "{}");
+        const content = JSON.parse(response.choices[0].message.content || "{}");
+        suggestions = Array.isArray(content.trails) ? content.trails : [content];
       } else if (enabledProvider.provider === "gemini") {
         const genAI = new GoogleGenerativeAI(enabledProvider.apiKey || '');
         const model = genAI.getGenerativeModel({ 
@@ -360,13 +361,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        suggestion = JSON.parse(response.text());
+        const content = JSON.parse(response.text());
+        suggestions = Array.isArray(content.trails) ? content.trails : [content];
       }
 
-      res.json(suggestion);
+      res.json({ suggestions });
     } catch (error: any) {
-      console.error('Error generating AI suggestion:', error);
-      res.status(500).json({ message: error.message || "Failed to generate trail suggestion" });
+      console.error('Error generating AI suggestions:', error);
+      res.status(500).json({ message: error.message || "Failed to generate trail suggestions" });
     }
   });
 
