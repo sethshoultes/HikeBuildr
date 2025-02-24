@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle, XCircle, Settings2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ApiSetting } from "@shared/schema";
@@ -27,6 +27,124 @@ interface ErrorLog {
   timestamp: string;
   error: string;
   stack?: string;
+}
+
+interface AIProviderWidgetProps {
+  provider: "openai" | "gemini";
+  settings: ApiSetting;
+  onSettingChange: (field: keyof ApiSetting, value: any) => void;
+  onValidate: () => void;
+  isValidating: boolean;
+}
+
+function AIProviderWidget({ provider, settings, onSettingChange, onValidate, isValidating }: AIProviderWidgetProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="capitalize">
+              {provider === "openai" ? "OpenAI GPT-4" : "Google Gemini"} Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure AI assistant settings for trail descriptions and recommendations
+            </CardDescription>
+          </div>
+          <Switch
+            checked={settings.isEnabled}
+            onCheckedChange={(checked) => onSettingChange("isEnabled", checked)}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <Label htmlFor={`${provider}-api-key`}>API Key</Label>
+            <Input
+              id={`${provider}-api-key`}
+              type="password"
+              value={settings.apiKey || ""}
+              onChange={(e) => onSettingChange("apiKey", e.target.value)}
+              placeholder={`Enter ${provider === "openai" ? "OpenAI" : "Gemini"} API Key`}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor={`${provider}-model`}>Model</Label>
+            <Input
+              id={`${provider}-model`}
+              value={settings.model || ""}
+              onChange={(e) => onSettingChange("model", e.target.value)}
+              placeholder={provider === "openai" ? "gpt-4o" : "gemini-pro"}
+            />
+            <p className="text-sm text-muted-foreground">
+              {provider === "openai" 
+                ? "Latest model: gpt-4o (recommended)"
+                : "Available model: gemini-pro"}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Label>Generation Parameters</Label>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label>Temperature</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {settings.temperature || "0.7"}
+                  </span>
+                </div>
+                <Slider
+                  value={[parseFloat(settings.temperature || "0.7")]}
+                  onValueChange={([value]) =>
+                    onSettingChange("temperature", value.toString())
+                  }
+                  max={1}
+                  step={0.1}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`${provider}-max-tokens`}>Max Tokens</Label>
+                <Input
+                  id={`${provider}-max-tokens`}
+                  type="number"
+                  value={settings.maxTokens || ""}
+                  onChange={(e) =>
+                    onSettingChange("maxTokens", parseInt(e.target.value))
+                  }
+                  placeholder="e.g., 2000"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center pt-4">
+            <div className="text-sm text-muted-foreground">
+              {settings.lastValidated 
+                ? `Last validated: ${new Date(settings.lastValidated).toLocaleString()}`
+                : "Not validated yet"}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onValidate}
+              disabled={isValidating}
+            >
+              {isValidating ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : settings.lastValidated ? (
+                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+              ) : (
+                <XCircle className="h-4 w-4 text-red-500 mr-2" />
+              )}
+              Validate Connection
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminPage() {
@@ -134,7 +252,6 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {/* Existing status cards */}
         <Card>
           <CardHeader>
             <CardTitle>Server Uptime</CardTitle>
@@ -183,7 +300,7 @@ export default function AdminPage() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="api-logs">API Logs</TabsTrigger>
           <TabsTrigger value="error-logs">Error Logs</TabsTrigger>
-          <TabsTrigger value="api-settings">API Settings</TabsTrigger>
+          <TabsTrigger value="api-settings">AI Settings</TabsTrigger>
         </TabsList>
 
         {/* API Logs Tab */}
@@ -272,117 +389,24 @@ export default function AdminPage() {
 
         {/* API Settings Tab */}
         <TabsContent value="api-settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI API Configuration</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingApiSettings ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {apiSettings?.map((setting) => (
-                    <div key={setting.id} className="space-y-4 p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold capitalize">{setting.provider}</h3>
-                        <div className="flex items-center gap-4">
-                          <Switch
-                            checked={setting.isEnabled}
-                            onCheckedChange={(checked) =>
-                              handleSettingChange(setting, "isEnabled", checked)
-                            }
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => validateApiMutation.mutate(setting.provider)}
-                            disabled={validateApiMutation.isPending}
-                          >
-                            {validateApiMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : setting.lastValidated ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            )}
-                            <span className="ml-2">Validate</span>
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor={`${setting.provider}-api-key`}>API Key</Label>
-                          <Input
-                            id={`${setting.provider}-api-key`}
-                            type="password"
-                            value={setting.apiKey || ""}
-                            onChange={(e) =>
-                              handleSettingChange(setting, "apiKey", e.target.value)
-                            }
-                            placeholder={`Enter ${setting.provider} API Key`}
-                          />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor={`${setting.provider}-model`}>Model</Label>
-                          <Input
-                            id={`${setting.provider}-model`}
-                            value={setting.model || ""}
-                            onChange={(e) =>
-                              handleSettingChange(setting, "model", e.target.value)
-                            }
-                            placeholder="e.g., gpt-4o for OpenAI, gemini-pro for Gemini"
-                          />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label>Temperature</Label>
-                          <Slider
-                            value={[parseFloat(setting.temperature || "0.7")]}
-                            onValueChange={([value]) =>
-                              handleSettingChange(setting, "temperature", value.toString())
-                            }
-                            max={1}
-                            step={0.1}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {setting.temperature || "0.7"}
-                          </span>
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor={`${setting.provider}-max-tokens`}>Max Tokens</Label>
-                          <Input
-                            id={`${setting.provider}-max-tokens`}
-                            type="number"
-                            value={setting.maxTokens || ""}
-                            onChange={(e) =>
-                              handleSettingChange(
-                                setting,
-                                "maxTokens",
-                                parseInt(e.target.value)
-                              )
-                            }
-                            placeholder="e.g., 2000"
-                          />
-                        </div>
-
-                        {setting.lastValidated && (
-                          <p className="text-sm text-muted-foreground">
-                            Last validated:{" "}
-                            {new Date(setting.lastValidated).toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {isLoadingApiSettings ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {apiSettings?.map((setting) => (
+                <AIProviderWidget
+                  key={setting.id}
+                  provider={setting.provider as "openai" | "gemini"}
+                  settings={setting}
+                  onSettingChange={(field, value) => handleSettingChange(setting, field, value)}
+                  onValidate={() => validateApiMutation.mutate(setting.provider)}
+                  isValidating={validateApiMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
