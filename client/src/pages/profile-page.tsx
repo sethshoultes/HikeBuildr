@@ -18,6 +18,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -26,11 +27,22 @@ export default function ProfilePage() {
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
-      email: user?.email || "",
-      fullName: user?.fullName || "",
-      bio: user?.bio || "",
+      email: "",
+      fullName: "",
+      bio: "",
     },
   });
+
+  // Update form when user data is available
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        email: user.email || "",
+        fullName: user.fullName || "",
+        bio: user.bio || "",
+      });
+    }
+  }, [user, form.reset]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -59,11 +71,20 @@ export default function ProfilePage() {
 
   const { data: favorites = [], isLoading: isFavoritesLoading } = useQuery<Trail[]>({
     queryKey: ["/api/user/favorites"],
+    enabled: !!user, // Only run query when user is available
   });
 
   const onSubmit = (data: UpdateUserProfile) => {
     updateProfileMutation.mutate(data);
   };
+
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
