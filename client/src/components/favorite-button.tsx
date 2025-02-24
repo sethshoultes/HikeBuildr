@@ -34,7 +34,7 @@ export function FavoriteButton({ trailId, variant = "default" }: FavoriteButtonP
         variant="ghost"
         size="icon"
         onClick={handleClick}
-        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background/90 z-10"
       >
         {isFavorited ? (
           <Heart className="h-4 w-4 fill-primary text-primary" />
