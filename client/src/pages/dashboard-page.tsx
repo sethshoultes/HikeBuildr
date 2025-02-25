@@ -17,6 +17,7 @@ import {
   LogOut
 } from "lucide-react";
 import type { Trail } from "@shared/schema";
+import AdminPage from "./admin-page"; // Import AdminPage component
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -178,19 +179,7 @@ export default function DashboardPage() {
             {/* Admin Tab */}
             {user?.role === "admin" && (
               <TabsContent value="admin">
-                <div className="max-w-4xl mx-auto">
-                  <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-                  <div className="grid gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>System Status</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {/* Add admin controls and metrics here */}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                <AdminPage /> {/* AdminPage component is rendered here */}
               </TabsContent>
             )}
 
