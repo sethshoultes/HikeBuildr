@@ -124,7 +124,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           });
 
           google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', () => {
-            const newPath = polylineRef.current?.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+            const newPath = polylineRef.current?.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
             if (newPath) {
               onPathCoordinatesChange(newPath);
             }
@@ -162,11 +162,11 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           }
 
           polylineRef.current = polyline;
-          const path = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+          const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
           onPathCoordinatesChange(path);
 
           google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
-            const newPath = polyline.getPath().getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
+            const newPath = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
             onPathCoordinatesChange(newPath);
           });
         });

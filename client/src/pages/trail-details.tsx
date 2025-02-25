@@ -130,10 +130,11 @@ export default function TrailDetails() {
         setLocation("/");
       }
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -207,7 +208,7 @@ export default function TrailDetails() {
   };
 
   const handleSuggestionApply = (suggestion: Partial<Trail>) => {
-    console.log('Applying suggestion:', suggestion); // Debug log
+    console.log('Applying suggestion:', suggestion);
 
     // Get current form values
     const currentValues = form.getValues();
@@ -229,9 +230,12 @@ export default function TrailDetails() {
       imageUrl: currentValues.imageUrl,
     });
 
-    // Force form field updates
-    Object.keys(suggestion).forEach(key => {
-      form.trigger(key as keyof Trail);
+    // Only trigger validation for fields that are in the form
+    const validFields = ['name', 'description', 'difficulty', 'distance', 'elevation', 'duration', 'location', 'bestSeason', 'parkingInfo', 'coordinates', 'pathCoordinates', 'imageUrl'] as const;
+    validFields.forEach(field => {
+      if (field in suggestion) {
+        form.trigger(field);
+      }
     });
   };
 
