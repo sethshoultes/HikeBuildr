@@ -1,24 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ViewOnlyMap } from "@/components/view-only-map";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  Map,
-  User,
-  BookmarkIcon,
-  PlusCircle,
-  Settings2,
-  BarChart2,
-  LogOut
-} from "lucide-react";
+import { Map, User, BookmarkIcon, PlusCircle, Settings2, BarChart2, LogOut } from "lucide-react";
 import type { Trail } from "@shared/schema";
 import AdminPage from "./admin-page";
 import ProfilePage from "./profile-page";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -29,10 +24,13 @@ export default function DashboardPage() {
     queryKey: ["/api/trails/saved"],
   });
 
+  const { data: aiSettings } = useQuery({
+    queryKey: ["/api/admin/settings"],
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex">
-        {/* Sidebar */}
         <div className="w-64 border-r border-border bg-card h-screen p-4">
           <div className="flex flex-col h-full">
             <div className="space-y-2">
@@ -104,10 +102,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="flex-1 p-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-            {/* Saved Trails Tab */}
             <TabsContent value="saved-trails" className="h-full">
               <div className="grid gap-6">
                 <div className="flex items-center justify-between">
@@ -154,29 +150,114 @@ export default function DashboardPage() {
               </div>
             </TabsContent>
 
-            {/* Profile Tab */}
             <TabsContent value="profile">
               <ProfilePage />
             </TabsContent>
 
-            {/* Admin Tab */}
             {user?.role === "admin" && (
               <TabsContent value="admin">
-                <AdminPage /> {/* AdminPage component is rendered here */}
+                <AdminPage />
               </TabsContent>
             )}
 
-            {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium mb-2">Preferences</h3>
-                        {/* Add preference controls here */}
+                <h1 className="text-3xl font-bold mb-6">Settings</h1>
+
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>AI Configuration</CardTitle>
+                    <CardDescription>
+                      Configure AI providers for trail recommendations
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4 p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">OpenAI GPT-4</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Configure AI settings for OpenAI GPT-4 to generate trail descriptions and recommendations
+                          </p>
+                        </div>
+                        <Switch
+                          checked={aiSettings?.find(s => s.provider === "openai")?.isEnabled}
+                          onCheckedChange={() => { }}
+                        />
                       </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium">API Key</label>
+                          <Input
+                            type="password"
+                            value={aiSettings?.find(s => s.provider === "openai")?.apiKey}
+                            onChange={() => { }}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium">Temperature (0.7)</label>
+                          <Slider
+                            defaultValue={[0.7]}
+                            max={1}
+                            step={0.1}
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Controls randomness: 0 is focused, 1 is creative
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium">Max Tokens</label>
+                          <Input
+                            type="number"
+                            defaultValue={2000}
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Maximum length of the generated text (1 token ≈ 4 characters)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">Google Gemini</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Configure AI settings for Google Gemini to generate trail descriptions and recommendations
+                          </p>
+                        </div>
+                        <Switch
+                          checked={aiSettings?.find(s => s.provider === "gemini")?.isEnabled}
+                          onCheckedChange={() => { }}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium">API Key</label>
+                        <Input
+                          type="password"
+                          value={aiSettings?.find(s => s.provider === "gemini")?.apiKey}
+                          onChange={() => { }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Preferences</CardTitle>
+                    <CardDescription>
+                      Customize your hiking experience
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
                     </div>
                   </CardContent>
                 </Card>
