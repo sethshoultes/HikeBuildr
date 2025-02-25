@@ -17,7 +17,8 @@ import {
   LogOut
 } from "lucide-react";
 import type { Trail } from "@shared/schema";
-import AdminPage from "./admin-page"; // Import AdminPage component
+import AdminPage from "./admin-page";
+import ProfilePage from "./profile-page";
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -155,25 +156,7 @@ export default function DashboardPage() {
 
             {/* Profile Tab */}
             <TabsContent value="profile">
-              <div className="max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold mb-6">Profile</h1>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium mb-2">Profile Information</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Username: {user?.username}
-                        </p>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <h3 className="font-medium mb-2">Account Settings</h3>
-                        {/* Add profile settings controls here */}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <ProfilePage />
             </TabsContent>
 
             {/* Admin Tab */}
