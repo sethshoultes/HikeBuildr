@@ -9,6 +9,8 @@ import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
 import DashboardPage from "@/pages/dashboard-page";
 import NotFound from "@/pages/not-found";
+import AdminPage from "@/pages/admin-page"; // Added import
+import ProfilePage from "@/pages/profile-page"; // Added import
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -25,6 +27,8 @@ function Router() {
           </Route>
           <ProtectedRoute path="/dashboard" component={DashboardPage} />
           <ProtectedRoute path="/trails/:id" component={TrailDetails} />
+          <Route path="/admin" component={AdminPage} /> {/* Added route */}
+          <Route path="/profile" component={ProfilePage} /> {/* Added route */}
           <Route component={NotFound} />
         </Switch>
       </main>
