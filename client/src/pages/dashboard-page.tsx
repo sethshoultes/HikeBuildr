@@ -93,6 +93,7 @@ export default function DashboardPage() {
                 variant="ghost"
                 className="w-full justify-start text-muted-foreground"
                 onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout

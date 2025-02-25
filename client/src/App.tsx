@@ -7,9 +7,7 @@ import { NavHeader } from "@/components/nav-header";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
-import ProfilePage from "@/pages/profile-page";
 import DashboardPage from "@/pages/dashboard-page";
-import AdminPage from "@/pages/admin-page";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -26,8 +24,6 @@ function Router() {
             {() => <AuthPage returnTo={location} />}
           </Route>
           <ProtectedRoute path="/dashboard" component={DashboardPage} />
-          <ProtectedRoute path="/profile" component={ProfilePage} />
-          <ProtectedRoute path="/admin" component={AdminPage} roles={["admin"]} />
           <ProtectedRoute path="/trails/:id" component={TrailDetails} />
           <Route component={NotFound} />
         </Switch>
