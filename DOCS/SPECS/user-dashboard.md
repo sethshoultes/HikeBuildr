@@ -84,18 +84,60 @@ The user dashboard provides a centralized interface for users to manage their hi
 - Notifications
 - Search bar
 - Quick actions menu
+- Location selector
+- Weather indicator
 
 ### Sidebar Navigation
 - Main section links
 - Collapsible menu
 - Active state indicators
 - Quick filters
+- Recent trails list
+- Favorites section
+- Offline status indicator
 
 ### Content Area
 - Responsive grid layout
 - Card-based components
 - Loading states
 - Empty state designs
+- Error boundaries
+- Toast notifications
+
+### Map Components
+- Interactive map view
+- Trail path editor
+- Waypoint markers
+- Elevation profile
+- Distance calculator
+- Terrain overlay
+- Offline map regions
+
+### Trail Cards
+- Trail preview image
+- Difficulty indicator
+- Distance/time stats
+- Elevation graph
+- Quick action buttons
+- Offline availability badge
+- Share options
+
+### Form Components
+- Trail detail editor
+- Image uploader
+- GPS track importer
+- Rating system
+- Comment section
+- Safety checklist
+- Condition reporter
+
+### Mobile Components
+- Bottom navigation bar
+- Pull-to-refresh
+- Swipe actions
+- Map fullscreen mode
+- Offline mode toggle
+- Location permissions
 
 ## User Flows
 
