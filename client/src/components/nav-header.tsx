@@ -9,7 +9,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Home, BarChart2, LogOut, User } from "lucide-react";
+import { Home, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Custom navigation item component to prevent nested anchors
@@ -53,19 +53,10 @@ export function NavHeader() {
 
             {user && (
               <NavItem 
-                href="/profile" 
-                icon={User} 
-                isActive={location === "/profile"}>
-                Profile
-              </NavItem>
-            )}
-
-            {user?.role === "admin" && (
-              <NavItem 
-                href="/admin" 
-                icon={BarChart2} 
-                isActive={location === "/admin"}>
-                Admin Dashboard
+                href="/dashboard" 
+                icon={LayoutDashboard} 
+                isActive={location === "/dashboard"}>
+                Dashboard
               </NavItem>
             )}
           </NavigationMenuList>

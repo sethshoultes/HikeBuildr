@@ -13,13 +13,14 @@ import {
   BookmarkIcon,
   PlusCircle,
   Settings2,
+  BarChart2,
   LogOut
 } from "lucide-react";
 import type { Trail } from "@shared/schema";
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("saved-trails");
 
   const { data: savedTrails, isLoading: isLoadingTrails } = useQuery<Trail[]>({
@@ -36,7 +37,7 @@ export default function DashboardPage() {
               <h2 className="text-lg font-semibold">Dashboard</h2>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
-                <span>{user?.email}</span>
+                <span>{user?.username}</span>
               </div>
             </div>
 
@@ -59,6 +60,24 @@ export default function DashboardPage() {
                   Create New Trail
                 </Button>
                 <Button
+                  variant={activeTab === "profile" ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab("profile")}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </Button>
+                {user?.role === "admin" && (
+                  <Button
+                    variant={activeTab === "admin" ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => setActiveTab("admin")}
+                  >
+                    <BarChart2 className="h-4 w-4 mr-2" />
+                    Admin Panel
+                  </Button>
+                )}
+                <Button
                   variant={activeTab === "settings" ? "secondary" : "ghost"}
                   className="w-full justify-start"
                   onClick={() => setActiveTab("settings")}
@@ -73,7 +92,7 @@ export default function DashboardPage() {
               <Button
                 variant="ghost"
                 className="w-full justify-start text-muted-foreground"
-                onClick={() => logout()}
+                onClick={() => logoutMutation.mutate()}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -132,6 +151,48 @@ export default function DashboardPage() {
               </div>
             </TabsContent>
 
+            {/* Profile Tab */}
+            <TabsContent value="profile">
+              <div className="max-w-2xl mx-auto">
+                <h1 className="text-3xl font-bold mb-6">Profile</h1>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-medium mb-2">Profile Information</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Username: {user?.username}
+                        </p>
+                      </div>
+                      <div className="pt-4 border-t">
+                        <h3 className="font-medium mb-2">Account Settings</h3>
+                        {/* Add profile settings controls here */}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Admin Tab */}
+            {user?.role === "admin" && (
+              <TabsContent value="admin">
+                <div className="max-w-4xl mx-auto">
+                  <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+                  <div className="grid gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>System Status</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {/* Add admin controls and metrics here */}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+            )}
+
             {/* Settings Tab */}
             <TabsContent value="settings">
               <div className="max-w-2xl mx-auto">
@@ -140,12 +201,6 @@ export default function DashboardPage() {
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       <div>
-                        <h3 className="font-medium mb-2">Profile Information</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Email: {user?.email}
-                        </p>
-                      </div>
-                      <div className="pt-4 border-t">
                         <h3 className="font-medium mb-2">Preferences</h3>
                         {/* Add preference controls here */}
                       </div>
