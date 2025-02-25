@@ -135,54 +135,7 @@ export default function AdminPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Server Uptime</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {systemStatus ? Math.floor(systemStatus.uptime / 3600) + " hours" : "Loading..."}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Memory Usage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between">
-                <p className="text-sm text-muted-foreground">Heap Memory</p>
-                <p className="text-2xl font-bold">
-                  {systemStatus
-                    ? `${Math.round((systemStatus.memory.heapUsed / systemStatus.memory.heapTotal) * 100)}%`
-                    : "Loading..."}
-                </p>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {systemStatus
-                  ? `${(systemStatus.memory.heapUsed / 1024 / 1024).toFixed(1)} MB / ${(
-                      systemStatus.memory.heapTotal / 1024 / 1024
-                    ).toFixed(1)} MB`
-                  : ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {systemStatus?.activeUsers ?? "Loading..."}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
@@ -211,6 +164,13 @@ export default function AdminPage() {
               ) : (
                 <ScrollArea className="h-[600px] pr-4">
                   <div className="space-y-2">
+                    <style jsx>{`
+                      pre {
+                        white-space: pre-wrap;
+                        word-break: break-all;
+                        max-width: 100%;
+                      }
+                    `}</style>
                     {apiLogs?.map((log, index) => (
                       <Alert key={index}>
                         <AlertDescription>
