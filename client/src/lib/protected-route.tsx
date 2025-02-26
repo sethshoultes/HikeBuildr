@@ -16,9 +16,13 @@ export function ProtectedRoute({
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
+  console.log('Protected Route:', { path, isLoading, user, currentLocation: location });
+
   return (
     <Route path={path}>
-      {() => {
+      {(params) => {
+        console.log('Route Params:', params);
+
         if (isLoading) {
           return (
             <div className="flex items-center justify-center min-h-[50vh]">
@@ -28,7 +32,6 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          // Redirect to auth page with return path
           const returnPath = encodeURIComponent(location);
           return <Redirect to={`/auth?returnTo=${returnPath}`} />;
         }

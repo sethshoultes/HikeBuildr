@@ -9,8 +9,8 @@ import AuthPage from "@/pages/auth-page";
 import TrailDetails from "@/pages/trail-details";
 import DashboardPage from "@/pages/dashboard-page";
 import NotFound from "@/pages/not-found";
-import AdminPage from "@/pages/admin-page"; // Added import
-import ProfilePage from "@/pages/profile-page"; // Added import
+import AdminPage from "@/pages/admin-page";
+import ProfilePage from "@/pages/profile-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -18,17 +18,15 @@ function Router() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NavHeader currentPath={location} />
+      <NavHeader />
       <main>
         <Switch>
           <Route path="/" component={HomePage} />
-          <Route path="/auth">
-            {() => <AuthPage returnTo={location} />}
-          </Route>
+          <Route path="/auth" component={AuthPage} />
           <ProtectedRoute path="/dashboard" component={DashboardPage} />
           <ProtectedRoute path="/trails/:id" component={TrailDetails} />
-          <Route path="/admin" component={AdminPage} /> {/* Added route */}
-          <Route path="/profile" component={ProfilePage} /> {/* Added route */}
+          <ProtectedRoute path="/admin" component={AdminPage} roles={["admin"]} />
+          <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route component={NotFound} />
         </Switch>
       </main>
