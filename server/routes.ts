@@ -311,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI features (protected)
-  app.post("/api/trails/ai-suggest", requireAuth, async (req, res) => {
+  app.post("/api/trails/ai-suggest", requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const { location } = req.body;
       if (!location) {
@@ -368,7 +368,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         suggestions = Array.isArray(content.trails) ? content.trails : [content];
       }
 
-      res.json({ suggestions });
+      // Create draft trails in the database for each suggestion
+      const createdTrails = await Promise.all(suggestions.map(async (suggestion) => {
+        const trail = await storage.createTrail({
+          name: suggestion.trail_name,
+          description: suggestion.description,
+          difficulty: suggestion.difficulty_level,
+          distance: `${suggestion.distance_miles} miles`,
+          elevation: `${suggestion.elevation_gain_feet} feet`,
+          duration: `${suggestion.estimated_duration_hours} hours`,
+          location,
+          coordinates: suggestion.starting_coordinates,
+          status: "draft",
+          createdById: req.user.id,
+          lastUpdatedById: req.user.id,
+        });
+        return { ...suggestion, id: trail.id };
+      }));
+
+      res.json({ suggestions: createdTrails });
     } catch (error: any) {
       console.error('Error generating AI suggestions:', error);
       res.status(500).json({ message: error.message || "Failed to generate trail suggestions" });
