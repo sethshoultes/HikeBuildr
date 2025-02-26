@@ -9,11 +9,11 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Home, LayoutDashboard, LogOut } from "lucide-react";
+import { Home, LayoutDashboard, LogOut, Map } from "lucide-react"; // Added Map import
 import { Button } from "@/components/ui/button";
 
 // Custom navigation item component to prevent nested anchors
-const NavItem = ({ href, icon: Icon, children, isActive }: { 
+const NavItem = ({ href, icon: Icon, children, isActive }: {
   href: string;
   icon: any;
   children: React.ReactNode;
@@ -38,27 +38,39 @@ const NavItem = ({ href, icon: Icon, children, isActive }: {
 export function NavHeader() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const id = "someTrailId"; // Placeholder for dynamic trail ID
 
   return (
     <header className="border-b">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <NavigationMenu>
           <NavigationMenuList>
-            <NavItem 
-              href="/" 
-              icon={Home} 
-              isActive={location === "/"}>
+            <NavItem
+              href="/"
+              icon={Home}
+              isActive={location === "/"}
+            >
               Home
             </NavItem>
 
             {user && (
-              <NavItem 
-                href="/dashboard" 
-                icon={LayoutDashboard} 
-                isActive={location === "/dashboard"}>
+              <NavItem
+                href="/dashboard"
+                icon={LayoutDashboard}
+                isActive={location === "/dashboard"}
+              >
                 Dashboard
               </NavItem>
             )}
+            {/* Added trail navigation item */}
+            <NavItem
+              href={`/trails/${id}`}
+              icon={Map}
+              isActive={location.startsWith(`/trails/${id}`)} //Added isActive check.
+            >
+              View Trail
+            </NavItem>
+
           </NavigationMenuList>
         </NavigationMenu>
 
