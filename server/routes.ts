@@ -370,6 +370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create draft trails in the database for each suggestion
       const createdTrails = await Promise.all(suggestions.map(async (suggestion) => {
+        console.log("Creating draft trail with coordinates:", suggestion.starting_coordinates);
+
         const trail = await storage.createTrail({
           name: suggestion.trail_name,
           description: suggestion.description,
@@ -382,14 +384,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parkingInfo: suggestion.parking_info,
           bestSeason: suggestion.best_season,
           status: "draft",
-          pathCoordinates: "", // Empty string for now, will be populated when drawing the path
-          imageUrl: "", // Empty string for now, will be populated when adding images
-          aiSummary: "", // Empty string for now, will be populated when generating AI descriptions
+          pathCoordinates: "",
+          imageUrl: "",
+          aiSummary: "",
           createdAt: new Date(),
           updatedAt: new Date(),
           createdById: req.user.id,
           lastUpdatedById: req.user.id,
         });
+
+        console.log("Created draft trail:", trail);
         return { ...suggestion, id: trail.id };
       }));
 
