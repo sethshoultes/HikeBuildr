@@ -39,7 +39,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Initialize map once
+  // Initialize map and drawing manager
   useEffect(() => {
     let mounted = true;
 
@@ -74,7 +74,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           fullscreenControl: true,
         });
 
-        // Initialize drawing manager
+        // Initialize drawing manager with default settings
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
           drawingMode: null,
           drawingControl: isEditing,
@@ -96,18 +96,30 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         drawingManagerRef.current.setMap(googleMapRef.current);
 
-        // Setup drawing manager listeners
+        // Set up marker completion handler
         google.maps.event.addListener(drawingManagerRef.current, "markercomplete", (marker: google.maps.Marker) => {
+          // Remove existing marker if any
           if (markerRef.current) {
             markerRef.current.setMap(null);
           }
+
           markerRef.current = marker;
           const position = marker.getPosition();
           if (position) {
+            // Update coordinates immediately when marker is placed
             onCoordinatesChange(`${position.lat()},${position.lng()}`);
           }
+
+          // Add drag listener to update coordinates when marker is moved
+          marker.addListener("dragend", () => {
+            const newPosition = marker.getPosition();
+            if (newPosition) {
+              onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
+            }
+          });
         });
 
+        // Set up polyline completion handler
         google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
           if (polylineRef.current) {
             polylineRef.current.setMap(null);
@@ -115,9 +127,15 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           polylineRef.current = polyline;
           const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
           onPathCoordinatesChange(path);
+
+          // Add path update listener
+          google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
+            const newPath = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
+            onPathCoordinatesChange(newPath);
+          });
         });
 
-        // If coordinates exist, show initial marker
+        // Initialize marker if coordinates exist
         if (trail?.coordinates) {
           const coords = parseCoordinates(trail.coordinates);
           if (coords) {
@@ -127,7 +145,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
               draggable: isEditing,
             });
 
-            // Add drag listener
+            // Add drag listener to existing marker
             markerRef.current.addListener("dragend", () => {
               const position = markerRef.current?.getPosition();
               if (position) {
@@ -140,7 +158,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           }
         }
 
-        // If path exists, show initial path
+        // Initialize polyline if path coordinates exist
         if (trail?.pathCoordinates) {
           try {
             const pathPoints = trail.pathCoordinates.split(';').map(coord => {
@@ -185,20 +203,23 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   useEffect(() => {
     if (!drawingManagerRef.current) return;
 
+    // Update drawing controls visibility
     drawingManagerRef.current.setOptions({
       drawingControl: isEditing
     });
 
+    // Update marker draggability
     if (markerRef.current) {
       markerRef.current.setDraggable(isEditing);
     }
 
+    // Update polyline editability
     if (polylineRef.current) {
       polylineRef.current.setEditable(isEditing);
     }
   }, [isEditing]);
 
-  // Handle coordinate updates
+  // Update marker when coordinates change
   useEffect(() => {
     if (!googleMapRef.current || !trail?.coordinates) return;
 
@@ -229,7 +250,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
     googleMapRef.current.setZoom(15);
   }, [trail?.coordinates, isEditing]);
 
-  // Handle path coordinate updates
+  // Handle path coordinate updates (This part remains largely unchanged from original)
   useEffect(() => {
     if (!googleMapRef.current || !trail?.pathCoordinates) return;
 
