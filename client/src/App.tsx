@@ -23,8 +23,8 @@ function Router() {
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/trails/:id" component={TrailDetails} />
           <ProtectedRoute path="/dashboard" component={DashboardPage} />
-          <ProtectedRoute path="/trails/:id" component={TrailDetails} />
           <ProtectedRoute path="/admin" component={AdminPage} roles={["admin"]} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route component={NotFound} />
