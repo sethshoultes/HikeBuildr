@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "./hooks/use-auth";
@@ -14,8 +14,6 @@ import ProfilePage from "@/pages/profile-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
-  const [location] = useLocation();
-
   return (
     <div className="min-h-screen bg-background">
       <NavHeader />
@@ -25,7 +23,7 @@ function Router() {
           <Route path="/auth" component={AuthPage} />
           <Route path="/trails/:id" component={TrailDetails} />
           <ProtectedRoute path="/dashboard" component={DashboardPage} />
-          <ProtectedRoute path="/admin" component={AdminPage} roles={["admin"]} />
+          <ProtectedRoute path="/admin" component={AdminPage} />
           <ProtectedRoute path="/profile" component={ProfilePage} />
           <Route component={NotFound} />
         </Switch>
