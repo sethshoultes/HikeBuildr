@@ -18,6 +18,36 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Watch for coordinate changes from the form
+  useEffect(() => {
+    if (trail?.coordinates && googleMapRef.current) {
+      const [latStr, lngStr] = trail.coordinates.split(",");
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Update marker position
+        if (markerRef.current) {
+          markerRef.current.setPosition({ lat, lng });
+        } else {
+          markerRef.current = new google.maps.Marker({
+            position: { lat, lng },
+            map: googleMapRef.current,
+            draggable: true,
+          });
+
+          markerRef.current.addListener("dragend", () => {
+            const position = markerRef.current?.getPosition();
+            if (position) {
+              onCoordinatesChange(`${position.lat()},${position.lng()}`);
+            }
+          });
+        }
+        // Center map on new coordinates
+        googleMapRef.current.panTo({ lat, lng });
+      }
+    }
+  }, [trail?.coordinates]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -80,7 +110,8 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
             strokeColor: '#FF0000',
             strokeOpacity: 1.0,
             strokeWeight: 2,
-            editable: true
+            editable: true,
+            geodesic: true
           }
         });
 
@@ -120,14 +151,21 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
             strokeOpacity: 1.0,
             strokeWeight: 2,
             editable: true,
+            geodesic: true,
             map: googleMapRef.current
           });
 
+          // Listen for path changes when editing the polyline
           google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', () => {
-            const newPath = polylineRef.current?.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-            if (newPath) {
-              onPathCoordinatesChange(newPath);
-            }
+            updatePathCoordinates();
+          });
+
+          google.maps.event.addListener(polylineRef.current.getPath(), 'insert_at', () => {
+            updatePathCoordinates();
+          });
+
+          google.maps.event.addListener(polylineRef.current.getPath(), 'remove_at', () => {
+            updatePathCoordinates();
           });
         }
 
@@ -162,12 +200,19 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           }
 
           polylineRef.current = polyline;
-          const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-          onPathCoordinatesChange(path);
+          updatePathCoordinates();
 
+          // Add listeners for path editing
           google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
-            const newPath = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-            onPathCoordinatesChange(newPath);
+            updatePathCoordinates();
+          });
+
+          google.maps.event.addListener(polyline.getPath(), 'insert_at', () => {
+            updatePathCoordinates();
+          });
+
+          google.maps.event.addListener(polyline.getPath(), 'remove_at', () => {
+            updatePathCoordinates();
           });
         });
 
@@ -189,6 +234,14 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
       }
     };
   }, [trail, isEditing, onCoordinatesChange, onPathCoordinatesChange]);
+
+  // Helper function to update path coordinates
+  const updatePathCoordinates = () => {
+    if (polylineRef.current) {
+      const path = polylineRef.current.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
+      onPathCoordinatesChange(path);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
