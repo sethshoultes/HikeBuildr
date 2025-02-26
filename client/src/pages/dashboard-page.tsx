@@ -15,6 +15,16 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 
+interface AIProvider {
+  provider: string;
+  isEnabled: boolean;
+  apiKey?: string;
+}
+
+interface AISettings {
+  providers: AIProvider[];
+}
+
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
@@ -24,9 +34,13 @@ export default function DashboardPage() {
     queryKey: ["/api/trails/saved"],
   });
 
-  const { data: aiSettings } = useQuery({
+  const { data: aiSettings } = useQuery<AISettings>({
     queryKey: ["/api/admin/settings"],
   });
+
+  const getProviderSettings = (providerName: string): AIProvider | undefined => {
+    return aiSettings?.providers?.find(p => p.provider === providerName);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,8 +195,8 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <Switch
-                          checked={aiSettings?.find(s => s.provider === "openai")?.isEnabled}
-                          onCheckedChange={() => { }}
+                          checked={getProviderSettings("openai")?.isEnabled}
+                          onCheckedChange={() => {}}
                         />
                       </div>
 
@@ -191,8 +205,8 @@ export default function DashboardPage() {
                           <label className="text-sm font-medium">API Key</label>
                           <Input
                             type="password"
-                            value={aiSettings?.find(s => s.provider === "openai")?.apiKey}
-                            onChange={() => { }}
+                            value={getProviderSettings("openai")?.apiKey}
+                            onChange={() => {}}
                           />
                         </div>
 
@@ -232,8 +246,8 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <Switch
-                          checked={aiSettings?.find(s => s.provider === "gemini")?.isEnabled}
-                          onCheckedChange={() => { }}
+                          checked={getProviderSettings("gemini")?.isEnabled}
+                          onCheckedChange={() => {}}
                         />
                       </div>
 
@@ -241,8 +255,8 @@ export default function DashboardPage() {
                         <label className="text-sm font-medium">API Key</label>
                         <Input
                           type="password"
-                          value={aiSettings?.find(s => s.provider === "gemini")?.apiKey}
-                          onChange={() => { }}
+                          value={getProviderSettings("gemini")?.apiKey}
+                          onChange={() => {}}
                         />
                       </div>
                     </div>
