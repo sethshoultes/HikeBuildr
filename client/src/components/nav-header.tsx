@@ -9,10 +9,9 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { Home, LayoutDashboard, LogOut, Map } from "lucide-react"; // Added Map import
+import { Home, LayoutDashboard, LogOut, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Custom navigation item component to prevent nested anchors
 const NavItem = ({ href, icon: Icon, children, isActive }: {
   href: string;
   icon: any;
@@ -38,7 +37,6 @@ const NavItem = ({ href, icon: Icon, children, isActive }: {
 export function NavHeader() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const id = "someTrailId"; // Placeholder for dynamic trail ID
 
   return (
     <header className="border-b">
@@ -62,15 +60,6 @@ export function NavHeader() {
                 Dashboard
               </NavItem>
             )}
-            {/* Added trail navigation item */}
-            <NavItem
-              href={`/trails/${id}`}
-              icon={Map}
-              isActive={location.startsWith(`/trails/${id}`)} //Added isActive check.
-            >
-              View Trail
-            </NavItem>
-
           </NavigationMenuList>
         </NavigationMenu>
 
