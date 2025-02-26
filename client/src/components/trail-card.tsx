@@ -9,7 +9,7 @@ interface TrailCardProps {
 
 export function TrailCard({ trail }: TrailCardProps) {
   return (
-    <Link href={`/trail/${trail.id}`}>
+    <Link href={`/trails/${trail.id}`}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
