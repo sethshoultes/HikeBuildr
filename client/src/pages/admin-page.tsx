@@ -138,13 +138,9 @@ export default function AdminPage() {
       
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="api-logs">API Logs</TabsTrigger>
           <TabsTrigger value="error-logs">Error Logs</TabsTrigger>
-          <TabsTrigger value="api-settings">
-            <Settings2 className="w-4 h-4 mr-2" />
-            AI Settings
-          </TabsTrigger>
         </TabsList>
 
         {/* API Logs Tab */}
@@ -250,24 +246,7 @@ export default function AdminPage() {
         </TabsContent>
 
         {/* AI Settings Tab */}
-        <TabsContent value="api-settings" className="space-y-6">
-          {isLoadingApiSettings ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : (
-            apiSettings?.map((setting) => (
-              <AIProviderWidget
-                key={setting.id}
-                provider={setting.provider as "openai" | "gemini"}
-                settings={setting}
-                onSettingChange={(field, value) => handleSettingChange(setting, field, value)}
-                onValidate={() => validateApiMutation.mutate(setting.provider)}
-                isValidating={validateApiMutation.isPending}
-              />
-            ))
-          )}
-        </TabsContent>
+        
       </Tabs>
     </div>
   );
