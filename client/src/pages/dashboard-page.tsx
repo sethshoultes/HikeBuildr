@@ -325,19 +325,6 @@ export default function DashboardPage() {
                     </div>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Preferences</CardTitle>
-                    <CardDescription>
-                      Customize your hiking experience
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </TabsContent>
           </Tabs>
