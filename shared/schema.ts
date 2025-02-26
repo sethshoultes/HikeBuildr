@@ -32,20 +32,17 @@ export const trails = pgTable("trails", {
   aiSummary: text("ai_summary"),
   bestSeason: text("best_season"),
   parkingInfo: text("parking_info"),
-  status: text("status").notNull().default("draft"), // Added status field
   createdById: integer("created_by_id").references(() => users.id),
   lastUpdatedById: integer("last_updated_by_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // New table for API settings
 export const apiSettings = pgTable("api_settings", {
   id: serial("id").primaryKey(),
-  provider: text("provider").notNull(),
+  provider: text("provider").notNull(), // 'openai' or 'gemini'
   isEnabled: boolean("is_enabled").notNull().default(false),
   apiKey: text("api_key"),
-  model: text("model"),
+  model: text("model"), // e.g., 'gpt-4', 'gemini-pro'
   temperature: text("temperature"),
   maxTokens: integer("max_tokens"),
   lastValidated: timestamp("last_validated"),
@@ -76,9 +73,7 @@ export const updateUserProfileSchema = z.object({
   message: "Current password is required when changing password",
 });
 
-export const insertTrailSchema = createInsertSchema(trails).extend({
-  status: z.enum(["draft", "published"]).default("draft"),
-});
+export const insertTrailSchema = createInsertSchema(trails);
 
 // New schema for API settings
 export const apiSettingSchema = createInsertSchema(apiSettings).extend({

@@ -21,7 +21,7 @@ export default function HomePage() {
   });
 
   const handleTrailClick = (trail: Trail) => {
-    setLocation(`/trails/${trail.id}`);
+    setLocation(`/trail/${trail.id}`);
   };
 
   return (
@@ -32,7 +32,7 @@ export default function HomePage() {
             Discover Amazing Trails
           </h1>
           {isAdmin && (
-            <Button onClick={() => setLocation("/trails/new")}>
+            <Button onClick={() => setLocation("/trail/new")}>
               <Plus className="h-4 w-4 mr-2" />
               Add Trail
             </Button>
@@ -65,7 +65,7 @@ export default function HomePage() {
                 <TrailCard
                   key={trail.id}
                   trail={trail}
-                  onTrailSelect={() => handleTrailClick(trail)}
+                  onClick={() => handleTrailClick(trail)}
                 />
               ))
             )}

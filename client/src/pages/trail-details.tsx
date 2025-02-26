@@ -214,7 +214,7 @@ export default function TrailDetails() {
     const currentValues = form.getValues();
 
     // Update form with suggestion, keeping existing values as fallback
-    const newValues = {
+    form.reset({
       ...currentValues,
       name: suggestion.name || currentValues.name,
       description: suggestion.description || currentValues.description,
@@ -225,16 +225,17 @@ export default function TrailDetails() {
       location: suggestion.location || currentValues.location,
       bestSeason: suggestion.bestSeason || currentValues.bestSeason,
       parkingInfo: suggestion.parkingInfo || currentValues.parkingInfo,
-      coordinates: suggestion.coordinates || currentValues.coordinates,
+      coordinates: suggestion.coordinates, // Direct assignment without fallback
       pathCoordinates: currentValues.pathCoordinates,
       imageUrl: currentValues.imageUrl,
-    };
+    });
 
-    form.reset(newValues);
-
-    // Force form validation and update
-    Object.keys(newValues).forEach(key => {
-      form.trigger(key);
+    // Only trigger validation for fields that are in the form
+    const validFields = ['name', 'description', 'difficulty', 'distance', 'elevation', 'duration', 'location', 'bestSeason', 'parkingInfo', 'coordinates', 'pathCoordinates', 'imageUrl'] as const;
+    validFields.forEach(field => {
+      if (field in suggestion) {
+        form.trigger(field);
+      }
     });
   };
 

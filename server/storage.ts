@@ -276,25 +276,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrail(trail: Omit<Trail, "id">): Promise<Trail> {
-    const [newTrail] = await db
-      .insert(trails)
-      .values({
-        ...trail,
-        status: "draft",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+    const [newTrail] = await db.insert(trails).values(trail).returning();
     return newTrail;
   }
 
   async updateTrail(id: number, trail: Partial<Trail>): Promise<Trail | undefined> {
     const [updatedTrail] = await db
       .update(trails)
-      .set({
-        ...trail,
-        updatedAt: new Date(),
-      })
+      .set(trail)
       .where(eq(trails.id, id))
       .returning();
     return updatedTrail;
