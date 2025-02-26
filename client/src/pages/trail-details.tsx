@@ -23,6 +23,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AITrailSuggestionModal } from "@/components/ai-trail-suggestion-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -165,6 +176,32 @@ export default function TrailDetails() {
         title: "Success",
         description: "GPX file uploaded successfully",
       });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTrailMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/trails/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete trail");
+      }
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
+      toast({
+        title: "Success",
+        description: "Trail deleted successfully.",
+      });
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
@@ -510,6 +547,35 @@ export default function TrailDetails() {
                           onChange={handleGpxUpload}
                         />
                       </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="mt-4">
+                            Delete Trail
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the trail
+                              and remove all associated data.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteTrailMutation.mutate()}
+                              disabled={deleteTrailMutation.isPending}
+                            >
+                              {deleteTrailMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Delete"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   )}
                 </CardContent>
