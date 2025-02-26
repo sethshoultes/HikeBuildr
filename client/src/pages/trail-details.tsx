@@ -208,6 +208,8 @@ export default function TrailDetails() {
   };
 
   const handleSuggestionApply = (suggestion: Partial<Trail>) => {
+    console.log('Applying suggestion:', suggestion);
+
     // Get current form values
     const currentValues = form.getValues();
 
@@ -223,15 +225,17 @@ export default function TrailDetails() {
       location: suggestion.location || currentValues.location,
       bestSeason: suggestion.bestSeason || currentValues.bestSeason,
       parkingInfo: suggestion.parkingInfo || currentValues.parkingInfo,
-      coordinates: suggestion.coordinates || currentValues.coordinates,
+      coordinates: suggestion.coordinates, // Direct assignment without fallback
       pathCoordinates: currentValues.pathCoordinates,
       imageUrl: currentValues.imageUrl,
     });
 
-    // Trigger validation for all fields
+    // Only trigger validation for fields that are in the form
     const validFields = ['name', 'description', 'difficulty', 'distance', 'elevation', 'duration', 'location', 'bestSeason', 'parkingInfo', 'coordinates', 'pathCoordinates', 'imageUrl'] as const;
     validFields.forEach(field => {
-      form.trigger(field);
+      if (field in suggestion) {
+        form.trigger(field);
+      }
     });
   };
 

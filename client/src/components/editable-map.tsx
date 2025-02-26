@@ -108,6 +108,8 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   useEffect(() => {
     if (!mapInitialized || !googleMapRef.current) return;
 
+    console.log("Updating marker for coordinates:", trail?.coordinates);
+
     // Clear existing marker
     if (markerRef.current) {
       markerRef.current.setMap(null);
