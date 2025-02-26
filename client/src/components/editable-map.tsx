@@ -39,7 +39,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Initialize map and drawing manager once
+  // Initialize map once
   useEffect(() => {
     let mounted = true;
 
@@ -74,10 +74,10 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           fullscreenControl: true,
         });
 
-        // Initialize drawing manager (always present, but controls visibility toggled by edit mode)
+        // Initialize drawing manager
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
           drawingMode: null,
-          drawingControl: false, // Start with controls hidden
+          drawingControl: isEditing,
           drawingControlOptions: {
             position: google.maps.ControlPosition.TOP_CENTER,
             drawingModes: [
@@ -96,43 +96,78 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         drawingManagerRef.current.setMap(googleMapRef.current);
 
-        // Handle marker creation
+        // Setup drawing manager listeners
         google.maps.event.addListener(drawingManagerRef.current, "markercomplete", (marker: google.maps.Marker) => {
           if (markerRef.current) {
             markerRef.current.setMap(null);
           }
           markerRef.current = marker;
-
           const position = marker.getPosition();
           if (position) {
             onCoordinatesChange(`${position.lat()},${position.lng()}`);
           }
-
-          // Add drag listener
-          marker.addListener("dragend", () => {
-            const newPosition = marker.getPosition();
-            if (newPosition) {
-              onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
-            }
-          });
         });
 
-        // Handle polyline creation
         google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
           if (polylineRef.current) {
             polylineRef.current.setMap(null);
           }
           polylineRef.current = polyline;
-
           const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
           onPathCoordinatesChange(path);
-
-          // Add path update listener
-          google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
-            const newPath = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-            onPathCoordinatesChange(newPath);
-          });
         });
+
+        // If coordinates exist, show initial marker
+        if (trail?.coordinates) {
+          const coords = parseCoordinates(trail.coordinates);
+          if (coords) {
+            markerRef.current = new google.maps.Marker({
+              position: coords,
+              map: googleMapRef.current,
+              draggable: isEditing,
+            });
+
+            // Add drag listener
+            markerRef.current.addListener("dragend", () => {
+              const position = markerRef.current?.getPosition();
+              if (position) {
+                onCoordinatesChange(`${position.lat()},${position.lng()}`);
+              }
+            });
+
+            googleMapRef.current.setCenter(coords);
+            googleMapRef.current.setZoom(15);
+          }
+        }
+
+        // If path exists, show initial path
+        if (trail?.pathCoordinates) {
+          try {
+            const pathPoints = trail.pathCoordinates.split(';').map(coord => {
+              const [lat, lng] = coord.split(',').map(Number);
+              if (isNaN(lat) || isNaN(lng)) throw new Error('Invalid path coordinates');
+              return new google.maps.LatLng(lat, lng);
+            });
+
+            polylineRef.current = new google.maps.Polyline({
+              path: pathPoints,
+              strokeColor: '#FF0000',
+              strokeOpacity: 1.0,
+              strokeWeight: 2,
+              editable: isEditing,
+              map: googleMapRef.current
+            });
+
+            google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', () => {
+              const newPath = polylineRef.current?.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
+              if (newPath) {
+                onPathCoordinatesChange(newPath);
+              }
+            });
+          } catch (error) {
+            console.warn('Error setting path coordinates:', error);
+          }
+        }
       })
       .catch((error) => {
         console.error("Error loading Google Maps:", error);
@@ -146,20 +181,18 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
     };
   }, []); // Only run once on mount
 
-  // Toggle drawing controls based on edit mode
+  // Handle edit mode changes
   useEffect(() => {
-    if (drawingManagerRef.current) {
-      drawingManagerRef.current.setOptions({
-        drawingControl: isEditing
-      });
-    }
+    if (!drawingManagerRef.current) return;
 
-    // Update marker draggability
+    drawingManagerRef.current.setOptions({
+      drawingControl: isEditing
+    });
+
     if (markerRef.current) {
       markerRef.current.setDraggable(isEditing);
     }
 
-    // Update polyline editability
     if (polylineRef.current) {
       polylineRef.current.setEditable(isEditing);
     }
@@ -167,13 +200,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
   // Handle coordinate updates
   useEffect(() => {
-    if (!googleMapRef.current || !trail?.coordinates) {
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-        markerRef.current = null;
-      }
-      return;
-    }
+    if (!googleMapRef.current || !trail?.coordinates) return;
 
     const coords = parseCoordinates(trail.coordinates);
     if (!coords) {
@@ -198,22 +225,13 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
       });
     }
 
-    // Center map on marker
     googleMapRef.current.setCenter(coords);
     googleMapRef.current.setZoom(15);
   }, [trail?.coordinates, isEditing]);
 
   // Handle path coordinate updates
   useEffect(() => {
-    if (!googleMapRef.current) return;
-
-    if (!trail?.pathCoordinates) {
-      if (polylineRef.current) {
-        polylineRef.current.setMap(null);
-        polylineRef.current = null;
-      }
-      return;
-    }
+    if (!googleMapRef.current || !trail?.pathCoordinates) return;
 
     try {
       const pathPoints = trail.pathCoordinates.split(';').map(coord => {
