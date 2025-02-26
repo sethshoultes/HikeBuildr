@@ -119,7 +119,7 @@ export default function TrailDetails() {
       }
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/trails/${id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/trails"] });
       toast({
@@ -127,7 +127,7 @@ export default function TrailDetails() {
         description: `Trail ${id === "new" ? "created" : "updated"} successfully.`,
       });
       if (id === "new") {
-        setLocation(`/trails/${data.id}`);
+        setLocation("/");
       }
     },
     onError: (error: unknown) => {
