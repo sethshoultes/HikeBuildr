@@ -208,8 +208,6 @@ export default function TrailDetails() {
   };
 
   const handleSuggestionApply = (suggestion: Partial<Trail>) => {
-    console.log('Applying suggestion:', suggestion);
-
     // Get current form values
     const currentValues = form.getValues();
 
@@ -225,7 +223,7 @@ export default function TrailDetails() {
       location: suggestion.location || currentValues.location,
       bestSeason: suggestion.bestSeason || currentValues.bestSeason,
       parkingInfo: suggestion.parkingInfo || currentValues.parkingInfo,
-      coordinates: suggestion.coordinates || currentValues.coordinates, // Ensure coordinates are properly handled
+      coordinates: suggestion.coordinates || currentValues.coordinates,
       pathCoordinates: currentValues.pathCoordinates,
       imageUrl: currentValues.imageUrl,
     });

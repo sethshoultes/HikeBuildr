@@ -116,32 +116,34 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
     // Add new marker if coordinates exist
     if (trail?.coordinates) {
-      const [latStr, lngStr] = trail.coordinates.split(",");
-      const lat = parseFloat(latStr);
-      const lng = parseFloat(lngStr);
+      try {
+        const [latStr, lngStr] = trail.coordinates.split(",");
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lngStr);
 
-      if (!isNaN(lat) && !isNaN(lng)) {
-        const position = { lat, lng };
-
-        markerRef.current = new google.maps.Marker({
-          position,
-          map: googleMapRef.current,
-          draggable: isEditing,
-        });
-
-        // Add drag listener
-        if (isEditing) {
-          markerRef.current.addListener("dragend", () => {
-            const newPosition = markerRef.current?.getPosition();
-            if (newPosition) {
-              onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
-            }
+        if (!isNaN(lat) && !isNaN(lng)) {
+          const position = { lat, lng };
+          markerRef.current = new google.maps.Marker({
+            position,
+            map: googleMapRef.current,
+            draggable: isEditing,
           });
-        }
 
-        // Center map on marker with animation
-        googleMapRef.current.panTo(position);
-        googleMapRef.current.setZoom(14);
+          if (isEditing) {
+            markerRef.current.addListener("dragend", () => {
+              const newPosition = markerRef.current?.getPosition();
+              if (newPosition) {
+                onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
+              }
+            });
+          }
+
+          // Center map on marker
+          googleMapRef.current.panTo(position);
+          googleMapRef.current.setZoom(14);
+        }
+      } catch (error) {
+        console.error("Error processing coordinates:", error);
       }
     }
   }, [trail?.coordinates, mapInitialized, isEditing]);
