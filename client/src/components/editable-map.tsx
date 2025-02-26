@@ -104,7 +104,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
     };
   }, [isEditing, onCoordinatesChange]);
 
-  // Update marker and center map when coordinates change
+  // Update marker when coordinates change
   useEffect(() => {
     if (!mapInitialized || !googleMapRef.current) return;
 
@@ -116,37 +116,32 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
     // Add new marker if coordinates exist
     if (trail?.coordinates) {
-      try {
-        const [latStr, lngStr] = trail.coordinates.split(",");
-        const lat = parseFloat(latStr);
-        const lng = parseFloat(lngStr);
+      const [latStr, lngStr] = trail.coordinates.split(",");
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
 
-        if (!isNaN(lat) && !isNaN(lng)) {
-          const position = { lat, lng };
-          markerRef.current = new google.maps.Marker({
-            position,
-            map: googleMapRef.current,
-            draggable: isEditing,
-          });
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const position = { lat, lng };
 
-          if (isEditing) {
-            markerRef.current.addListener("dragend", () => {
-              const newPosition = markerRef.current?.getPosition();
-              if (newPosition) {
-                onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
-              }
-            });
+        markerRef.current = new google.maps.Marker({
+          position,
+          map: googleMapRef.current,
+          draggable: true,
+        });
+
+        markerRef.current.addListener("dragend", () => {
+          const newPosition = markerRef.current?.getPosition();
+          if (newPosition) {
+            onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
           }
+        });
 
-          // Center map on marker
-          googleMapRef.current.panTo(position);
-          googleMapRef.current.setZoom(14);
-        }
-      } catch (error) {
-        console.error("Error processing coordinates:", error);
+        // Center map on marker
+        googleMapRef.current.panTo(position);
+        googleMapRef.current.setZoom(14);
       }
     }
-  }, [trail?.coordinates, mapInitialized, isEditing]);
+  }, [trail?.coordinates, mapInitialized]);
 
   // Update drawing controls
   useEffect(() => {
