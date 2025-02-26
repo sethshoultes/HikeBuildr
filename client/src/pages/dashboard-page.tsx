@@ -24,7 +24,7 @@ interface AIProvider {
   apiKey?: string;
 }
 
-// Update interface to match the API response format
+// Update type to match the API response format
 type AISettings = AIProvider[];
 
 export default function DashboardPage() {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updatedProvider: AIProvider) => {
-      const response = await fetch(`/api/admin/settings/${updatedProvider.provider}`, {
+      const response = await fetch(`/api/admin/settings/${updatedProvider.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
