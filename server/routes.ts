@@ -379,7 +379,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           duration: `${suggestion.estimated_duration_hours} hours`,
           location,
           coordinates: suggestion.starting_coordinates,
+          parkingInfo: suggestion.parking_info,
+          bestSeason: suggestion.best_season,
           status: "draft",
+          pathCoordinates: "", // Empty string for now, will be populated when drawing the path
+          imageUrl: "", // Empty string for now, will be populated when adding images
+          aiSummary: "", // Empty string for now, will be populated when generating AI descriptions
+          createdAt: new Date(),
+          updatedAt: new Date(),
           createdById: req.user.id,
           lastUpdatedById: req.user.id,
         });
