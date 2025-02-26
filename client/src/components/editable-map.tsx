@@ -20,30 +20,37 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
   // Watch for coordinate changes from the form
   useEffect(() => {
-    if (trail?.coordinates && googleMapRef.current) {
+    if (!googleMapRef.current) return;
+
+    if (trail?.coordinates) {
       const [latStr, lngStr] = trail.coordinates.split(",");
       const lat = parseFloat(latStr);
       const lng = parseFloat(lngStr);
+
       if (!isNaN(lat) && !isNaN(lng)) {
-        // Update marker position
+        const position = { lat, lng };
+
+        // Update or create marker
         if (markerRef.current) {
-          markerRef.current.setPosition({ lat, lng });
+          markerRef.current.setPosition(position);
         } else {
           markerRef.current = new google.maps.Marker({
-            position: { lat, lng },
+            position,
             map: googleMapRef.current,
             draggable: true,
           });
 
           markerRef.current.addListener("dragend", () => {
-            const position = markerRef.current?.getPosition();
-            if (position) {
-              onCoordinatesChange(`${position.lat()},${position.lng()}`);
+            const newPosition = markerRef.current?.getPosition();
+            if (newPosition) {
+              onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
             }
           });
         }
-        // Center map on new coordinates
-        googleMapRef.current.panTo({ lat, lng });
+
+        // Center and zoom map
+        googleMapRef.current.setCenter(position);
+        googleMapRef.current.setZoom(14); // Zoom in closer to see the area
       }
     }
   }, [trail?.coordinates]);
@@ -58,6 +65,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         const defaultCenter = { lat: 37.7749, lng: -122.4194 };
         let center = defaultCenter;
+        let zoom = 10;
 
         if (trail?.coordinates) {
           const [latStr, lngStr] = trail.coordinates.split(",");
@@ -65,11 +73,12 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           const lng = parseFloat(lngStr);
           if (!isNaN(lat) && !isNaN(lng)) {
             center = { lat, lng };
+            zoom = 14;
           }
         }
 
         googleMapRef.current = new google.maps.Map(mapRef.current, {
-          zoom: 10,
+          zoom,
           center,
           styles: [
             {
@@ -94,7 +103,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         // Set up drawing manager
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
-          drawingMode: isEditing ? google.maps.drawing.OverlayType.MARKER : null,
+          drawingMode: null,
           drawingControl: isEditing,
           drawingControlOptions: {
             position: google.maps.ControlPosition.TOP_CENTER,
@@ -155,23 +164,13 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
             map: googleMapRef.current
           });
 
-          // Listen for path changes when editing the polyline
-          google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', () => {
-            updatePathCoordinates();
-          });
-
-          google.maps.event.addListener(polylineRef.current.getPath(), 'insert_at', () => {
-            updatePathCoordinates();
-          });
-
-          google.maps.event.addListener(polylineRef.current.getPath(), 'remove_at', () => {
-            updatePathCoordinates();
-          });
+          google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', updatePathCoordinates);
+          google.maps.event.addListener(polylineRef.current.getPath(), 'insert_at', updatePathCoordinates);
+          google.maps.event.addListener(polylineRef.current.getPath(), 'remove_at', updatePathCoordinates);
         }
 
         // Handle new marker creation
         google.maps.event.addListener(drawingManagerRef.current, "markercomplete", (marker: google.maps.Marker) => {
-          // Remove old marker if it exists
           if (markerRef.current) {
             markerRef.current.setMap(null);
           }
@@ -190,32 +189,41 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
               onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
             }
           });
+
+          // Reset drawing mode after placing marker
+          drawingManagerRef.current?.setDrawingMode(null);
         });
 
         // Handle polyline complete
         google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', (polyline: google.maps.Polyline) => {
-          // Remove old polyline if it exists
           if (polylineRef.current) {
             polylineRef.current.setMap(null);
           }
 
           polylineRef.current = polyline;
+
+          // Store current map state
+          const currentCenter = googleMapRef.current?.getCenter();
+          const currentZoom = googleMapRef.current?.getZoom();
+
           updatePathCoordinates();
 
-          // Add listeners for path editing
-          google.maps.event.addListener(polyline.getPath(), 'set_at', () => {
-            updatePathCoordinates();
-          });
+          // Add path editing listeners
+          google.maps.event.addListener(polyline.getPath(), 'set_at', updatePathCoordinates);
+          google.maps.event.addListener(polyline.getPath(), 'insert_at', updatePathCoordinates);
+          google.maps.event.addListener(polyline.getPath(), 'remove_at', updatePathCoordinates);
 
-          google.maps.event.addListener(polyline.getPath(), 'insert_at', () => {
-            updatePathCoordinates();
-          });
+          // Reset drawing mode after completing polyline
+          drawingManagerRef.current?.setDrawingMode(null);
 
-          google.maps.event.addListener(polyline.getPath(), 'remove_at', () => {
-            updatePathCoordinates();
-          });
+          // Restore map state after a short delay
+          if (currentCenter && currentZoom) {
+            setTimeout(() => {
+              googleMapRef.current?.setCenter(currentCenter);
+              googleMapRef.current?.setZoom(currentZoom);
+            }, 100);
+          }
         });
-
       })
       .catch((error) => {
         console.error("Error loading Google Maps:", error);
@@ -233,12 +241,15 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
         drawingManagerRef.current.setMap(null);
       }
     };
-  }, [trail, isEditing, onCoordinatesChange, onPathCoordinatesChange]);
+  }, [trail, isEditing]);
 
   // Helper function to update path coordinates
   const updatePathCoordinates = () => {
     if (polylineRef.current) {
-      const path = polylineRef.current.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
+      const path = polylineRef.current.getPath()
+        .getArray()
+        .map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`)
+        .join(';');
       onPathCoordinatesChange(path);
     }
   };
@@ -253,7 +264,15 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
         <Button
           variant={isEditing ? "destructive" : "secondary"}
           size="sm"
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={() => {
+            setIsEditing(!isEditing);
+            if (drawingManagerRef.current) {
+              drawingManagerRef.current.setDrawingMode(null);
+              drawingManagerRef.current.setOptions({
+                drawingControl: !isEditing
+              });
+            }
+          }}
         >
           {isEditing ? (
             <>
