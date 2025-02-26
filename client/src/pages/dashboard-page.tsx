@@ -257,7 +257,100 @@ export default function DashboardPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold">Display Settings</h3>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Distance Unit</label>
+                          <select 
+                            className="w-full p-2 border rounded-md bg-background"
+                            defaultValue="miles"
+                          >
+                            <option value="miles">Miles</option>
+                            <option value="kilometers">Kilometers</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Map Display</label>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Switch defaultChecked id="show-elevation" />
+                              <label htmlFor="show-elevation" className="text-sm">Show elevation data</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch defaultChecked id="show-markers" />
+                              <label htmlFor="show-markers" className="text-sm">Show trail markers</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold">Trail Preferences</h3>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Preferred Difficulty Level</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              data-state="active"
+                            >
+                              Easy
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              className="w-full"
+                            >
+                              Moderate
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              className="w-full"
+                            >
+                              Hard
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Preferred Trail Types</label>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Switch defaultChecked id="loop-trails" />
+                              <label htmlFor="loop-trails" className="text-sm">Loop Trails</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch defaultChecked id="out-and-back" />
+                              <label htmlFor="out-and-back" className="text-sm">Out and Back</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch defaultChecked id="point-to-point" />
+                              <label htmlFor="point-to-point" className="text-sm">Point to Point</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 p-4 border rounded-lg">
+                        <h3 className="font-semibold">Notification Preferences</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Switch defaultChecked id="new-trail-notifications" />
+                            <label htmlFor="new-trail-notifications" className="text-sm">New trail recommendations</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch defaultChecked id="weather-alerts" />
+                            <label htmlFor="weather-alerts" className="text-sm">Weather alerts for saved trails</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch defaultChecked id="community-updates" />
+                            <label htmlFor="community-updates" className="text-sm">Community updates and events</label>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
