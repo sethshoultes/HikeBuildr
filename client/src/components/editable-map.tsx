@@ -104,11 +104,9 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
     };
   }, [isEditing, onCoordinatesChange]);
 
-  // Update marker when coordinates change
+  // Update marker and center map when coordinates change
   useEffect(() => {
     if (!mapInitialized || !googleMapRef.current) return;
-
-    console.log("Updating marker for coordinates:", trail?.coordinates);
 
     // Clear existing marker
     if (markerRef.current) {
@@ -128,22 +126,25 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
         markerRef.current = new google.maps.Marker({
           position,
           map: googleMapRef.current,
-          draggable: true,
+          draggable: isEditing,
         });
 
-        markerRef.current.addListener("dragend", () => {
-          const newPosition = markerRef.current?.getPosition();
-          if (newPosition) {
-            onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
-          }
-        });
+        // Add drag listener
+        if (isEditing) {
+          markerRef.current.addListener("dragend", () => {
+            const newPosition = markerRef.current?.getPosition();
+            if (newPosition) {
+              onCoordinatesChange(`${newPosition.lat()},${newPosition.lng()}`);
+            }
+          });
+        }
 
-        // Center map on marker
+        // Center map on marker with animation
         googleMapRef.current.panTo(position);
         googleMapRef.current.setZoom(14);
       }
     }
-  }, [trail?.coordinates, mapInitialized]);
+  }, [trail?.coordinates, mapInitialized, isEditing]);
 
   // Update drawing controls
   useEffect(() => {

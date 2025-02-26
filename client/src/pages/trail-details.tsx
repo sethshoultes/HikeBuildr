@@ -225,17 +225,15 @@ export default function TrailDetails() {
       location: suggestion.location || currentValues.location,
       bestSeason: suggestion.bestSeason || currentValues.bestSeason,
       parkingInfo: suggestion.parkingInfo || currentValues.parkingInfo,
-      coordinates: suggestion.coordinates, // Direct assignment without fallback
+      coordinates: suggestion.coordinates || currentValues.coordinates, // Ensure coordinates are properly handled
       pathCoordinates: currentValues.pathCoordinates,
       imageUrl: currentValues.imageUrl,
     });
 
-    // Only trigger validation for fields that are in the form
+    // Trigger validation for all fields
     const validFields = ['name', 'description', 'difficulty', 'distance', 'elevation', 'duration', 'location', 'bestSeason', 'parkingInfo', 'coordinates', 'pathCoordinates', 'imageUrl'] as const;
     validFields.forEach(field => {
-      if (field in suggestion) {
-        form.trigger(field);
-      }
+      form.trigger(field);
     });
   };
 
