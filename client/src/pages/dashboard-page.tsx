@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import ProfilePage from "./profile-page";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 interface AIProvider {
   provider: string;
@@ -29,6 +31,7 @@ export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("saved-trails");
+  const { toast } = useToast();
 
   const { data: savedTrails, isLoading: isLoadingTrails } = useQuery<Trail[]>({
     queryKey: ["/api/trails/saved"],
@@ -38,8 +41,62 @@ export default function DashboardPage() {
     queryKey: ["/api/admin/settings"],
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (updatedProvider: AIProvider) => {
+      const response = await fetch(`/api/admin/settings/${updatedProvider.provider}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedProvider),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update settings');
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      toast({
+        title: "Success",
+        description: "AI settings updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const getProviderSettings = (providerName: string): AIProvider | undefined => {
     return aiSettings?.providers?.find(p => p.provider === providerName);
+  };
+
+  const handleProviderToggle = (provider: string, enabled: boolean) => {
+    const currentSettings = getProviderSettings(provider);
+    if (currentSettings) {
+      updateSettingsMutation.mutate({
+        ...currentSettings,
+        isEnabled: enabled,
+      });
+    }
+  };
+
+  const handleApiKeyChange = (provider: string, apiKey: string) => {
+    const currentSettings = getProviderSettings(provider);
+    if (currentSettings) {
+      updateSettingsMutation.mutate({
+        ...currentSettings,
+        apiKey,
+      });
+    }
   };
 
   return (
@@ -196,7 +253,7 @@ export default function DashboardPage() {
                         </div>
                         <Switch
                           checked={getProviderSettings("openai")?.isEnabled}
-                          onCheckedChange={() => {}}
+                          onCheckedChange={(checked) => handleProviderToggle("openai", checked)}
                         />
                       </div>
 
@@ -206,7 +263,7 @@ export default function DashboardPage() {
                           <Input
                             type="password"
                             value={getProviderSettings("openai")?.apiKey}
-                            onChange={() => {}}
+                            onChange={(e) => handleApiKeyChange("openai", e.target.value)}
                           />
                         </div>
 
@@ -247,7 +304,7 @@ export default function DashboardPage() {
                         </div>
                         <Switch
                           checked={getProviderSettings("gemini")?.isEnabled}
-                          onCheckedChange={() => {}}
+                          onCheckedChange={(checked) => handleProviderToggle("gemini", checked)}
                         />
                       </div>
 
@@ -256,7 +313,7 @@ export default function DashboardPage() {
                         <Input
                           type="password"
                           value={getProviderSettings("gemini")?.apiKey}
-                          onChange={() => {}}
+                          onChange={(e) => handleApiKeyChange("gemini", e.target.value)}
                         />
                       </div>
                     </div>
