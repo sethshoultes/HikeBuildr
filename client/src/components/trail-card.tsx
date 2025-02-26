@@ -5,12 +5,13 @@ import { MapPin, Clock, Ruler } from "lucide-react";
 
 interface TrailCardProps {
   trail: Trail;
+  onTrailSelect?: () => void;
 }
 
-export function TrailCard({ trail }: TrailCardProps) {
+export function TrailCard({ trail, onTrailSelect }: TrailCardProps) {
   return (
-    <Link href={`/trail/${trail.id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+    <Link href={`/trails/${trail.id}`}>
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={onTrailSelect}>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{trail.name}</span>
