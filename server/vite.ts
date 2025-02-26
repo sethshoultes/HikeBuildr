@@ -3,6 +3,7 @@ import fs from "fs";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
+import history from "connect-history-api-fallback";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 import { type Server } from "http";
@@ -25,7 +26,7 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { server, host: '0.0.0.0' },
     allowedHosts: true,
   };
 
@@ -44,6 +45,7 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+  app.use(history()); // Added history middleware
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
