@@ -43,12 +43,18 @@ export default function DashboardPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updatedProvider: AIProvider) => {
+      // Only send the fields we want to update
+      const updateData = {
+        isEnabled: updatedProvider.isEnabled,
+        apiKey: updatedProvider.apiKey,
+      };
+
       const response = await fetch(`/api/admin/settings/${updatedProvider.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedProvider),
+        body: JSON.stringify(updateData),
         credentials: 'include',
       });
 
