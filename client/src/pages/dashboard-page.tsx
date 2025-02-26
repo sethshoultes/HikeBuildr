@@ -18,14 +18,14 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
 interface AIProvider {
+  id: number;
   provider: string;
   isEnabled: boolean;
   apiKey?: string;
 }
 
-interface AISettings {
-  providers: AIProvider[];
-}
+// Update interface to match the API response format
+type AISettings = AIProvider[];
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -76,7 +76,7 @@ export default function DashboardPage() {
   });
 
   const getProviderSettings = (providerName: string): AIProvider | undefined => {
-    return aiSettings?.providers?.find(p => p.provider === providerName);
+    return aiSettings?.find(p => p.provider === providerName);
   };
 
   const handleProviderToggle = (provider: string, enabled: boolean) => {
