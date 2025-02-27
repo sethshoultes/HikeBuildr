@@ -467,39 +467,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/trails/check-duplicates", requireAuth, async (req, res) => {
-    try {
-      const { name, coordinates } = req.body;
-      if (!name || !coordinates) {
-        return res.status(400).json({ message: "Name and coordinates are required" });
-      }
-
-      // Get all trails within 2km of the given coordinates
-      const [lat, lng] = coordinates.split(",").map(Number);
-      const nearbyTrails = await storage.getTrailsNearby(lat, lng, 2); // 2km radius
-
-      // Check for duplicates based on name similarity and location
-      const duplicates = nearbyTrails.filter(trail => {
-        // Simple name comparison (case-insensitive)
-        const nameMatch = trail.name.toLowerCase().includes(name.toLowerCase()) ||
-                         name.toLowerCase().includes(trail.name.toLowerCase());
-
-        // If names are similar, it's considered a potential duplicate
-        return nameMatch;
-      });
-
-      res.json({
-        duplicates: {
-          count: duplicates.length,
-          names: duplicates.map(t => t.name)
-        }
-      });
-    } catch (error) {
-      console.error("Error checking duplicates:", error);
-      res.status(500).json({ message: "Failed to check for duplicates" });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
