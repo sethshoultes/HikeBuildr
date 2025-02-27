@@ -6,22 +6,10 @@ This specification outlines the process of preventing duplicate trail suggestion
 ## Core Requirements
 
 ### 1. Trail Matching Logic
-- **Location-based Matching**
-  - Compare trail coordinates within a specific radius (e.g., 1km)
-  - Use geographical distance calculation
-  - Consider trail starting points
-
 - **Name Similarity**
   - Implement fuzzy matching for trail names
   - Account for common variations (e.g., "Mt." vs "Mount")
   - Set similarity threshold (e.g., 80%)
-
-- **Trail Characteristics**
-  - Compare key attributes:
-    - Distance (within ±0.5 miles)
-    - Elevation gain (within ±100 feet)
-    - Location description
-    - Trail difficulty
 
 ### 2. Implementation Details
 
