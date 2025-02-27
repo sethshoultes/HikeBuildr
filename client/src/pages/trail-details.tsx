@@ -66,7 +66,7 @@ export default function TrailDetails() {
     defaultValues: {
       name: "",
       description: "",
-      difficulty: "Easy", // Set default value
+      difficulty: "Easy" as const, // Explicitly type as const
       distance: "",
       elevation: "",
       duration: "",
@@ -84,7 +84,7 @@ export default function TrailDetails() {
       const formData = {
         name: trail.name,
         description: trail.description,
-        difficulty: trail.difficulty || "Easy", // Ensure default value if missing
+        difficulty: trail.difficulty || "Easy" as const, // Ensure proper type
         distance: trail.distance,
         elevation: trail.elevation,
         duration: trail.duration,

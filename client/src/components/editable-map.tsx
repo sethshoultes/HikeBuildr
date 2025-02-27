@@ -39,25 +39,24 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   }, [onCoordinatesChange]);
 
   const handlePolylineComplete = useCallback((polyline: google.maps.Polyline) => {
-    console.log('Polyline complete triggered');
-
-    // Remove old polyline if it exists
+    // Keep the existing polyline if it exists
     if (polylineRef.current) {
-      const listeners = polylineRef.current.get('pathListeners') as google.maps.MapsEventListener[];
-      if (Array.isArray(listeners)) {
-        listeners.forEach(listener => listener.remove());
-      }
       polylineRef.current.setMap(null);
     }
 
+    // Set the new polyline
     polylineRef.current = polyline;
-    polyline.setOptions({ editable: true });
+    polyline.setOptions({
+      editable: true,
+      strokeColor: '#FF0000',
+      strokeWeight: 3,
+      map: googleMapRef.current
+    });
 
     // Function to update path coordinates
     const updatePath = () => {
       const path = polyline.getPath();
       const coordinates = path.getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
-      console.log('Updating path coordinates:', coordinates);
       onPathCoordinatesChange(coordinates);
     };
 
@@ -74,11 +73,8 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
     // Store listeners for cleanup
     polyline.set('pathListeners', pathListeners);
 
-    // Prevent click event from bubbling up and refreshing the map
-    google.maps.event.addListenerOnce(polyline, 'click', (e) => {
-      if (e.stop) e.stop();
-      return false;
-    });
+    // Make sure the polyline stays on the map
+    polyline.setMap(googleMapRef.current);
   }, [onPathCoordinatesChange]);
 
   useEffect(() => {
@@ -132,7 +128,7 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         // Set up drawing manager
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
-          drawingMode: isEditing ? google.maps.drawing.OverlayType.POLYLINE : null,
+          drawingMode: null,
           drawingControl: isEditing,
           drawingControlOptions: {
             position: google.maps.ControlPosition.TOP_CENTER,
@@ -154,10 +150,12 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
         drawingManagerRef.current.setMap(googleMapRef.current);
 
         // Set up drawing event listeners
-        listeners.push(
-          google.maps.event.addListener(drawingManagerRef.current, "markercomplete", handleMarkerComplete),
-          google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', handlePolylineComplete)
-        );
+        if (isEditing) {
+          listeners.push(
+            google.maps.event.addListener(drawingManagerRef.current, "markercomplete", handleMarkerComplete),
+            google.maps.event.addListener(drawingManagerRef.current, 'polylinecomplete', handlePolylineComplete)
+          );
+        }
 
         // Add existing marker if coordinates exist
         if (trail?.coordinates) {
@@ -188,7 +186,6 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
         }
 
         // Add existing path if pathCoordinates exist
-        console.log('Loading existing path coordinates:', trail?.pathCoordinates);
         if (trail?.pathCoordinates) {
           try {
             const coordinates = trail.pathCoordinates.split(';').map(coord => {
@@ -220,7 +217,6 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
                 const path = polylineRef.current?.getPath();
                 if (path) {
                   const coords = path.getArray().map(p => `${p.lat()},${p.lng()}`).join(';');
-                  console.log('Updating existing path coordinates:', coords);
                   onPathCoordinatesChange(coords);
                 }
               };
