@@ -3,21 +3,24 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
-async function updatePassword() {
+async function createAdminUser() {
   const newPasswordHash = await hashPassword("5268970Sage!");
-  
+
   try {
-    await db.update(users)
-      .set({ 
+    const [user] = await db.insert(users)
+      .values({ 
+        username: "seth",
         password: newPasswordHash,
+        role: "admin",
+        createdAt: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(users.username, "seth"));
-      
-    console.log("Password updated successfully");
+      .returning();
+
+    console.log("Admin user created successfully:", user.username);
   } catch (error) {
-    console.error("Failed to update password:", error);
+    console.error("Failed to create admin user:", error);
   }
 }
 
-updatePassword();
+createAdminUser();
