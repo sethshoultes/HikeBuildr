@@ -34,6 +34,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import * as z from 'zod';
+
+// Type for the form values
+type TrailFormValues = z.infer<typeof insertTrailSchema>;
 
 export default function TrailDetails() {
   const { id } = useParams();
@@ -61,12 +65,12 @@ export default function TrailDetails() {
     enabled: !!trail,
   });
 
-  const form = useForm({
+  const form = useForm<TrailFormValues>({
     resolver: zodResolver(insertTrailSchema),
     defaultValues: {
       name: "",
       description: "",
-      difficulty: "Easy" as const, // Explicitly type as const
+      difficulty: "Easy" as const,
       distance: "",
       elevation: "",
       duration: "",
@@ -81,10 +85,15 @@ export default function TrailDetails() {
 
   useEffect(() => {
     if (trail) {
+      // Ensure difficulty is one of the valid enum values
+      const validDifficulty = ["Easy", "Moderate", "Strenuous"].includes(trail.difficulty)
+        ? (trail.difficulty as "Easy" | "Moderate" | "Strenuous")
+        : "Easy";
+
       const formData = {
         name: trail.name,
         description: trail.description,
-        difficulty: trail.difficulty || "Easy" as const, // Ensure proper type
+        difficulty: validDifficulty,
         distance: trail.distance,
         elevation: trail.elevation,
         duration: trail.duration,
@@ -401,6 +410,7 @@ export default function TrailDetails() {
                               <FormLabel>Difficulty</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
+                                defaultValue={field.value}
                                 value={field.value}
                               >
                                 <FormControl>
