@@ -1,119 +1,93 @@
 # AI Trail Deduplication Specification
 
 ## Overview
-This specification outlines the process of preventing duplicate trail suggestions when using AI to generate trail recommendations. The system should check existing trails in the database and ensure that AI-generated suggestions don't overlap with already documented trails.
+This specification outlines a simple process to prevent duplicate trail entries during trail creation. When using AI to assist in creating new trails, the system will perform basic checks against existing trails to avoid duplicates.
 
 ## Core Requirements
 
-### 1. Trail Matching Logic
-- **Location-based Matching**
-  - Compare trail coordinates within a specific radius (e.g., 1km)
-  - Use geographical distance calculation
-  - Consider trail starting points
+### 1. Basic Trail Matching
+- **Simple Location Check**
+  - Compare trail starting points within a reasonable radius (e.g., 2km)
+  - Use basic distance calculation between two points
+  - Only check the trail's starting coordinates
 
 - **Name Similarity**
-  - Implement fuzzy matching for trail names
-  - Account for common variations (e.g., "Mt." vs "Mount")
-  - Set similarity threshold (e.g., 80%)
-
-- **Trail Characteristics**
-  - Compare key attributes:
-    - Distance (within ±0.5 miles)
-    - Elevation gain (within ±100 feet)
-    - Location description
-    - Trail difficulty
+  - Basic string comparison
+  - Check for exact matches and simple variations
+  - Example: "Mount Whitney Trail" vs "Mt Whitney Trail"
 
 ### 2. Implementation Details
 
-#### Database Query
+#### Data Structure
 ```typescript
 interface TrailComparisonData {
   name: string;
-  coordinates: string;
-  distance: string;
-  elevation: string;
-  location: string;
+  coordinates: string; // Starting point only
 }
 ```
 
 #### Matching Process
-1. Before returning AI suggestions:
-   - Query existing trails in the area
-   - Compare each suggestion against existing trails
-   - Filter out suggestions that match existing trails
-   - Return only unique suggestions
-
-#### Confidence Scoring
-- Calculate match confidence based on:
-  - Coordinate proximity (40%)
-  - Name similarity (30%)
-  - Trail characteristics (30%)
-- Exclude suggestions with confidence score above threshold (e.g., 75%)
+1. During trail creation only:
+   - Get existing trails within the same region/area
+   - Compare trail name and starting point
+   - Alert user if potential duplicate found
+   - Allow user to proceed or modify
 
 ### 3. API Changes
 
-#### Modified Response Format
+#### Simple Response Format
 ```typescript
 interface AITrailResponse {
   suggestions: Trail[];
-  filtered: {
+  duplicates: {
     count: number;
-    reason: string;
+    names: string[];
   };
 }
 ```
 
-#### Request Parameters
-- Add optional parameters:
-  - `deduplication_radius`: number (km)
-  - `similarity_threshold`: number (0-100)
-  - `include_filtered`: boolean
+### 4. Technical Implementation
 
-### 4. Performance Considerations
-- Implement spatial indexing for coordinate comparison
-- Cache frequent location queries
-- Limit comparison to trails within relevant geographical bounds
-- Optimize string comparison algorithms
+#### Storage Interface
+- Use existing trail query methods
+- No need for special indexing
+- Simple coordinate-based filtering
 
-## Technical Implementation
+#### Distance Calculation
+```typescript
+function calculateDistance(coord1: string, coord2: string): number {
+  // Simple Haversine formula implementation
+  // Returns distance in kilometers
+}
+```
 
-### 1. Storage Interface Updates
-- Add method to query trails by geographical bounds
-- Implement coordinate-based search functionality
-- Add indexing for efficient spatial queries
-
-### 2. API Route Modifications
-- Update `/api/trails/ai-suggest` endpoint
-- Add deduplication logic
-- Include filtering metadata in response
-- Handle error cases for invalid coordinates
-
-### 3. Frontend Changes
-- Update AI suggestion modal
-- Display filtered suggestion count
-- Add option to view filtered suggestions
-- Show matching confidence scores
-
-## Validation Process
-1. Test with various locations
-2. Verify accuracy of duplicate detection
-3. Measure performance impact
-4. Validate coordinate comparison logic
-5. Test edge cases:
-   - Similar names, different locations
-   - Different names, same location
-   - Partial trail overlaps
+### 5. Frontend Changes
+- Show duplicate warnings in trail creation form
+- Display nearby existing trails
+- Allow user to continue if needed
 
 ## Success Criteria
-- No duplicate trails suggested
-- Performance under 2 seconds for suggestion generation
-- Accurate matching for at least 95% of cases
-- Clear feedback when suggestions are filtered
-- Maintainable and extensible implementation
+- Catch obvious duplicates during creation
+- Performance under 1 second for checks
+- Simple, maintainable implementation
+- Clear user feedback
 
-## Future Enhancements
-- Machine learning-based similarity detection
-- User feedback on duplicate detection
-- Advanced trail characteristic comparison
-- Integration with external trail databases
-- Dynamic threshold adjustment based on location density
+## Implementation Notes
+1. Keep the solution simple and focused
+2. Avoid complex algorithms or scoring systems
+3. Prioritize maintainability over precision
+4. Use basic JavaScript/TypeScript functions
+5. Focus on preventing obvious duplicates only
+
+## Future Considerations
+- This simple approach can be enhanced later if needed
+- Current implementation focuses on basic validation
+- Additional matching criteria can be added gradually
+- Maintain simplicity unless requirements change significantly
+
+## Why This Approach?
+1. Easy to maintain by developers of all skill levels
+2. Uses familiar JavaScript/TypeScript concepts
+3. No complex spatial databases or algorithms
+4. Clear, straightforward implementation
+5. Balances effectiveness with simplicity
