@@ -1,15 +1,27 @@
 # AI Trail Deduplication Specification
 
 ## Overview
-This specification outlines the process of preventing duplicate trail entries during the trail creation process. When using AI to assist in creating new trails, the system will check existing trails in the database to ensure that newly suggested trails don't overlap with already documented trails.
+This specification outlines the process of preventing duplicate trail suggestions when using AI to generate trail recommendations. The system should check existing trails in the database and ensure that AI-generated suggestions don't overlap with already documented trails.
 
 ## Core Requirements
 
 ### 1. Trail Matching Logic
+- **Location-based Matching**
+  - Compare trail coordinates within a specific radius (e.g., 1km)
+  - Use geographical distance calculation
+  - Consider trail starting points
+
 - **Name Similarity**
   - Implement fuzzy matching for trail names
   - Account for common variations (e.g., "Mt." vs "Mount")
   - Set similarity threshold (e.g., 80%)
+
+- **Trail Characteristics**
+  - Compare key attributes:
+    - Distance (within ±0.5 miles)
+    - Elevation gain (within ±100 feet)
+    - Location description
+    - Trail difficulty
 
 ### 2. Implementation Details
 
@@ -25,9 +37,9 @@ interface TrailComparisonData {
 ```
 
 #### Matching Process
-1. During trail creation process only:
+1. Before returning AI suggestions:
    - Query existing trails in the area
-   - Compare each AI suggestion against existing trails
+   - Compare each suggestion against existing trails
    - Filter out suggestions that match existing trails
    - Return only unique suggestions
 
@@ -77,7 +89,7 @@ interface AITrailResponse {
 - Handle error cases for invalid coordinates
 
 ### 3. Frontend Changes
-- Update AI suggestion modal in trail creation form
+- Update AI suggestion modal
 - Display filtered suggestion count
 - Add option to view filtered suggestions
 - Show matching confidence scores
@@ -93,17 +105,15 @@ interface AITrailResponse {
    - Partial trail overlaps
 
 ## Success Criteria
-- No duplicate trails suggested during creation
+- No duplicate trails suggested
 - Performance under 2 seconds for suggestion generation
 - Accurate matching for at least 95% of cases
 - Clear feedback when suggestions are filtered
 - Maintainable and extensible implementation
 
-## Important Note
-This deduplication process is specifically designed for and limited to the trail creation workflow. It is not intended to be used as a general trail recommendation engine. The duplicate detection logic is implemented only when users are creating new trails using AI suggestions.
-
-## Future Considerations
-- The duplicate detection logic could be adapted for a future recommendation engine
-- Current implementation focuses on creation-time validation only
-- Separate recommendation engine would require different matching criteria
-- Different thresholds might be needed for recommendations vs duplicate prevention
+## Future Enhancements
+- Machine learning-based similarity detection
+- User feedback on duplicate detection
+- Advanced trail characteristic comparison
+- Integration with external trail databases
+- Dynamic threshold adjustment based on location density
