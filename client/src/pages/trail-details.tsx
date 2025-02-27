@@ -499,7 +499,15 @@ export default function TrailDetails() {
                           <FormItem>
                             <FormLabel>Path Coordinates</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Use the map drawing tools to set path" readOnly />
+                              <Input
+                                {...field}
+                                placeholder="Use the map drawing tools to set path"
+                                value={field.value || ''}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value);
+                                  console.log('Path coordinates updated:', e.target.value);
+                                }}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
