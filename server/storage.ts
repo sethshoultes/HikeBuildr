@@ -5,6 +5,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { hashPassword, comparePasswords } from "./utils/password";
+import { findSimilarTrails } from "./services/trail-deduplication";
 
 const PostgresStore = connectPgSimple(session);
 
@@ -27,6 +28,8 @@ export interface IStorage {
   getApiSettings(): Promise<ApiSetting[]>;
   getApiSettingByProvider(provider: string): Promise<ApiSetting | undefined>;
   updateApiSetting(id: number, setting: Partial<ApiSetting>): Promise<ApiSetting | undefined>;
+  checkForDuplicateTrails(trail: Partial<Trail>): Promise<Trail[]>;
+  markTrailOfflineAvailable(id: number, available: boolean): Promise<Trail>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -273,7 +276,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrail(trail: Omit<Trail, "id">): Promise<Trail> {
-    const [newTrail] = await db.insert(trails).values(trail).returning();
+    const similarTrails = await this.checkForDuplicateTrails(trail);
+
+    const [newTrail] = await db.insert(trails).values({
+      ...trail,
+      similarTrails: similarTrails.map(t => t.id.toString()),
+      offlineAvailable: false,
+    }).returning();
+
     return newTrail;
   }
 
@@ -312,6 +322,25 @@ export class DatabaseStorage implements IStorage {
       .where(eq(apiSettings.id, id))
       .returning();
     return updatedSetting;
+  }
+
+  async checkForDuplicateTrails(trail: Partial<Trail>): Promise<Trail[]> {
+    const existingTrails = await this.getTrails();
+    return findSimilarTrails(trail, existingTrails);
+  }
+
+  async markTrailOfflineAvailable(id: number, available: boolean): Promise<Trail> {
+    const [updatedTrail] = await db
+      .update(trails)
+      .set({
+        offlineAvailable: available,
+        lastOfflineSync: available ? new Date() : null,
+        localCacheKey: available ? `trail_${id}_${Date.now()}` : null,
+      })
+      .where(eq(trails.id, id))
+      .returning();
+
+    return updatedTrail;
   }
 }
 

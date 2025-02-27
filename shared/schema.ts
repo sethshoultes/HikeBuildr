@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Keep existing tables
+// Keep existing tables unchanged
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -31,7 +31,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Keep existing trails table unchanged
 export const trails = pgTable("trails", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -49,6 +48,11 @@ export const trails = pgTable("trails", {
   parkingInfo: text("parking_info"),
   createdById: integer("created_by_id").references(() => users.id),
   lastUpdatedById: integer("last_updated_by_id").references(() => users.id),
+  // New fields for deduplication and offline support
+  similarTrails: text("similar_trails").array(),
+  offlineAvailable: boolean("offline_available").default(false),
+  lastOfflineSync: timestamp("last_offline_sync"),
+  localCacheKey: text("local_cache_key"),
 });
 
 // Keep API settings table unchanged
@@ -66,6 +70,17 @@ export const apiSettings = pgTable("api_settings", {
 });
 
 // Update schemas to include new fields
+export const insertTrailSchema = createInsertSchema(trails, {
+  name: z.string().min(1, "Trail name is required"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  difficulty: z.enum(["Easy", "Moderate", "Strenuous"]),
+  distance: z.string().min(1, "Distance is required"),
+  elevation: z.string().min(1, "Elevation gain is required"),
+  duration: z.string().min(1, "Duration is required"),
+  location: z.string().min(1, "Location is required"),
+  coordinates: z.string().regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, "Invalid coordinates format"),
+}).omit({ id: true });
+
 export const insertUserSchema = createInsertSchema(users).extend({
   role: z.enum(["user", "guide", "admin"]).default("user"),
   email: z.string().email().optional(),
@@ -116,8 +131,6 @@ export const updateUserProfileSchema = z.object({
   message: "Current password is required when changing password",
 });
 
-// Keep other schemas unchanged
-export const insertTrailSchema = createInsertSchema(trails);
 export const apiSettingSchema = createInsertSchema(apiSettings).extend({
   provider: z.enum(["openai", "gemini"]),
   model: z.string().min(1),

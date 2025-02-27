@@ -10,6 +10,7 @@ import { insertTrailSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { parseGpxFile, generateGpxFile } from "./utils/gpx";
 import multer from "multer";
+import { findSimilarTrails, generateSimilarityWarning } from "./services/trail-deduplication";
 
 // In-memory storage for logs
 const apiLogs: Array<{
@@ -213,10 +214,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastUpdatedById: req.user.id,
       });
 
+      // Check for similar trails before creation
+      const similarTrails = await storage.checkForDuplicateTrails(validatedData);
+      const warning = generateSimilarityWarning(similarTrails);
+
       const trail = await storage.createTrail(validatedData);
-      res.status(201).json(trail);
+
+      res.status(201).json({
+        trail,
+        warning,
+        similarTrails: similarTrails.map(t => ({
+          id: t.id,
+          name: t.name,
+          distance: t.distance,
+          difficulty: t.difficulty,
+        })),
+      });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "An unknown error occurred" });
+      }
     }
   });
 
@@ -372,6 +391,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error generating AI suggestions:', error);
       res.status(500).json({ message: error.message || "Failed to generate trail suggestions" });
+    }
+  });
+
+  // New route for managing offline availability
+  app.post("/api/trails/:id/offline", requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid trail ID" });
+      }
+
+      const { available } = req.body;
+      if (typeof available !== 'boolean') {
+        return res.status(400).json({ message: "Available status must be a boolean" });
+      }
+
+      const trail = await storage.markTrailOfflineAvailable(id, available);
+      if (!trail) {
+        return res.status(404).json({ message: "Trail not found" });
+      }
+
+      res.json(trail);
+    } catch (error) {
+      console.error('Error updating offline availability:', error);
+      res.status(500).json({ message: "Failed to update offline availability" });
     }
   });
 
