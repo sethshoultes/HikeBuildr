@@ -35,7 +35,7 @@ export const trails = pgTable("trails", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  difficulty: text("difficulty").notNull(),
+  difficulty: text("difficulty").notNull().default("Easy"),
   distance: text("distance").notNull(),
   elevation: text("elevation").notNull(),
   duration: text("duration").notNull(),
@@ -73,7 +73,7 @@ export const apiSettings = pgTable("api_settings", {
 export const insertTrailSchema = createInsertSchema(trails, {
   name: z.string().min(1, "Trail name is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  difficulty: z.enum(["Easy", "Moderate", "Strenuous"]),
+  difficulty: z.enum(["Easy", "Moderate", "Strenuous"]).default("Easy"),
   distance: z.string().min(1, "Distance is required"),
   elevation: z.string().min(1, "Elevation gain is required"),
   duration: z.string().min(1, "Duration is required"),

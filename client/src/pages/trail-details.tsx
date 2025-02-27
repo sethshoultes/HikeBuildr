@@ -66,7 +66,7 @@ export default function TrailDetails() {
     defaultValues: {
       name: "",
       description: "",
-      difficulty: "Easy",
+      difficulty: "Easy", // Set default value
       distance: "",
       elevation: "",
       duration: "",
@@ -84,7 +84,7 @@ export default function TrailDetails() {
       const formData = {
         name: trail.name,
         description: trail.description,
-        difficulty: trail.difficulty,
+        difficulty: trail.difficulty || "Easy", // Ensure default value if missing
         distance: trail.distance,
         elevation: trail.elevation,
         duration: trail.duration,

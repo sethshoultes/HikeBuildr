@@ -42,24 +42,37 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
   }, [onCoordinatesChange]);
 
   const handlePolylineComplete = useCallback((polyline: google.maps.Polyline) => {
+    // Prevent the default map click event
+    google.maps.event.addListenerOnce(polyline, 'click', (e: any) => {
+      e.stop();
+      return false;
+    });
+
     // Remove old polyline if it exists
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
     }
 
     polylineRef.current = polyline;
-    const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-    onPathCoordinatesChange(path);
 
-    // Add path update listener
-    const pathListener = google.maps.event.addListener(polyline.getPath(), 'set_at', (e: any) => {
-      e.stop(); // Prevent event propagation
-      const newPath = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
-      onPathCoordinatesChange(newPath);
-    });
+    // Update path coordinates
+    const updatePath = () => {
+      const path = polyline.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
+      onPathCoordinatesChange(path);
+    };
 
-    // Store listener reference for cleanup
-    polyline.set('pathListener', pathListener);
+    // Initial path update
+    updatePath();
+
+    // Add path update listeners
+    const listeners = [
+      google.maps.event.addListener(polyline.getPath(), 'set_at', updatePath),
+      google.maps.event.addListener(polyline.getPath(), 'insert_at', updatePath),
+      google.maps.event.addListener(polyline.getPath(), 'remove_at', updatePath)
+    ];
+
+    // Store listeners for cleanup
+    polyline.set('pathListeners', listeners);
   }, [onPathCoordinatesChange]);
 
   useEffect(() => {
@@ -113,11 +126,12 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
           googleMapRef.current.setCenter(center);
         }
 
-        // Set up drawing manager
+        // Clean up existing drawing manager
         if (drawingManagerRef.current) {
           drawingManagerRef.current.setMap(null);
         }
 
+        // Set up drawing manager
         drawingManagerRef.current = new google.maps.drawing.DrawingManager({
           drawingMode: isEditing ? google.maps.drawing.OverlayType.MARKER : null,
           drawingControl: isEditing,
@@ -169,33 +183,49 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
 
         // Add existing path if pathCoordinates exist
         if (trail?.pathCoordinates) {
-          const path = trail.pathCoordinates.split(';').map(coord => {
-            const [lat, lng] = coord.split(',').map(Number);
-            return new google.maps.LatLng(lat, lng);
-          });
+          try {
+            const path = trail.pathCoordinates.split(';').map(coord => {
+              const [lat, lng] = coord.split(',').map(Number);
+              return new google.maps.LatLng(lat, lng);
+            });
 
-          if (polylineRef.current) {
-            polylineRef.current.setMap(null);
-          }
+            if (polylineRef.current) {
+              // Clean up existing polyline
+              const pathListeners = polylineRef.current.get('pathListeners');
+              if (Array.isArray(pathListeners)) {
+                pathListeners.forEach(listener => listener.remove());
+              }
+              polylineRef.current.setMap(null);
+            }
 
-          polylineRef.current = new google.maps.Polyline({
-            path,
-            strokeColor: '#FF0000',
-            strokeOpacity: 1.0,
-            strokeWeight: 2,
-            editable: true,
-            map: googleMapRef.current
-          });
+            polylineRef.current = new google.maps.Polyline({
+              path,
+              strokeColor: '#FF0000',
+              strokeOpacity: 1.0,
+              strokeWeight: 2,
+              editable: isEditing,
+              map: googleMapRef.current
+            });
 
-          listeners.push(
-            google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', (e: any) => {
-              e.stop(); // Prevent event propagation
+            // Set up path update listeners
+            const updatePath = () => {
               const newPath = polylineRef.current?.getPath().getArray().map((p: google.maps.LatLng) => `${p.lat()},${p.lng()}`).join(';');
               if (newPath) {
                 onPathCoordinatesChange(newPath);
               }
-            })
-          );
+            };
+
+            const pathListeners = [
+              google.maps.event.addListener(polylineRef.current.getPath(), 'set_at', updatePath),
+              google.maps.event.addListener(polylineRef.current.getPath(), 'insert_at', updatePath),
+              google.maps.event.addListener(polylineRef.current.getPath(), 'remove_at', updatePath)
+            ];
+
+            polylineRef.current.set('pathListeners', pathListeners);
+            listeners.push(...pathListeners);
+          } catch (error) {
+            console.error('Error restoring path:', error);
+          }
         }
 
         // Set up drawing event listeners
@@ -214,16 +244,20 @@ export function EditableMap({ trail, onCoordinatesChange, onPathCoordinatesChang
       mounted = false;
 
       // Clean up all listeners
-      listeners.forEach(listener => listener.remove());
+      listeners.forEach(listener => {
+        if (listener) {
+          listener.remove();
+        }
+      });
 
       // Clean up map elements
       if (markerRef.current) {
         markerRef.current.setMap(null);
       }
       if (polylineRef.current) {
-        const pathListener = polylineRef.current.get('pathListener');
-        if (pathListener) {
-          pathListener.remove();
+        const pathListeners = polylineRef.current.get('pathListeners');
+        if (Array.isArray(pathListeners)) {
+          pathListeners.forEach(listener => listener.remove());
         }
         polylineRef.current.setMap(null);
       }
